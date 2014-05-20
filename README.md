@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/njx/github-label-tracker.svg?branch=master)](https://travis-ci.org/njx/github-label-tracker)
+
 Utility for tracking changes to GitHub labels over time.
 
 To run this, do `npm install`, then create a config.json file with these entries:
