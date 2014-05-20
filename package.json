@@ -1,0 +1,16 @@
+{
+  "name": "github-label-tracker",
+  "version": "0.1.0",
+  "description": "Track changes to github labels over time",
+  "repository": "https://github.com/njx/github-label-tracker.git",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "~1.2.4",
+    "lodash": "~2.4.1",
+    "request": "~2.36.0"
+  },
+  "devDependencies": {
+    "jasmine-node": "~1.14.3",
+    "rewire": "~2.0.0"
+  }
+}
