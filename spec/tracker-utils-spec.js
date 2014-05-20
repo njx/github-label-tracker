@@ -39,7 +39,7 @@ describe("updateLog", function () {
                 50: ["one", "two"]
             };
 
-        tracker_utils.updateLog(log, newLabels);
+        expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
         expect(log._timestamp).toEqual(1);
         expect(log[50]).toEqual({
             1: {
@@ -61,7 +61,7 @@ describe("updateLog", function () {
                 50: ["two", "three"]
             };
 
-        tracker_utils.updateLog(log, newLabels);
+        expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
         expect(log._timestamp).toEqual(2);
         expect(log[50]).toEqual({
             2: {
@@ -72,7 +72,7 @@ describe("updateLog", function () {
         });
     });
 
-    it("should not record a new timestamp/event for an issue if the labels didn't change (but should update log timestamp)", function () {
+    it("should not record a new timestamp/event for an issue if the labels didn't change (but should update log timestamp if different)", function () {
         var log = {
                 _timestamp: 1,
                 50: {
@@ -84,8 +84,26 @@ describe("updateLog", function () {
                 50: ["one", "two"]
             };
 
-        tracker_utils.updateLog(log, newLabels);
+        expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
         expect(log._timestamp).toEqual(2);
+        expect(log[50]).toEqual({
+            labels: ["one", "two"]
+        });
+    });
+    
+    it("should return false from updateLog if the timestamp and labels haven't changed", function () {
+        var log = {
+                _timestamp: 1,
+                50: {
+                    labels: ["one", "two"]
+                }
+            },
+            newLabels = {
+                _timestamp: 1
+            };
+
+        expect(tracker_utils.updateLog(log, newLabels)).toBe(false);
+        expect(log._timestamp).toEqual(1);
         expect(log[50]).toEqual({
             labels: ["one", "two"]
         });
@@ -113,7 +131,7 @@ describe("updateLog", function () {
                 50: ["two", "three"]
             };
 
-        tracker_utils.updateLog(log, newLabels);
+        expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
         expect(log._timestamp).toEqual(2);
         expect(log[25]).toEqual(origLog[25]);
         expect(log[50]).toEqual({

@@ -48,7 +48,10 @@ tracker_utils.readJSON("config.json")
         return tracker_utils.getCurrentLabels(config, log._timestamp);
     })
     .then(function (newLabels) {
-        tracker_utils.updateLog(log, newLabels);
+        if (!tracker_utils.updateLog(log, newLabels)) {
+            console.log("No issues changed - exiting");
+            process.exit(0);
+        }
         return fs.writeFileAsync("storage/log.json", JSON.stringify(log, null, "  "));
     })
     .then(function () {
