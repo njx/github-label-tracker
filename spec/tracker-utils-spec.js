@@ -130,14 +130,8 @@ describe("updateLog", function () {
 });
 
 describe("getCurrentLabels", function () {
-    var mockConfig = {
-            repo: "my/repo",
-            labels: ["Ready", "Development"],
-            api_key: "FAKE_KEY"
-        },
-        mockResponse = {
-            statusCode: 200
-        },
+    var mockConfig,
+        mockResponse,
         mockBody,
         requestedOptions;
     
@@ -179,9 +173,27 @@ describe("getCurrentLabels", function () {
         };
 
     beforeEach(function () {
+        var responseIndex = 0;
+        
+        requestedOptions = [];
+        mockConfig = {
+            repo: "my/repo",
+            labels: ["Ready", "Development"],
+            api_key: "FAKE_KEY"
+        };
+        mockResponse = {
+            statusCode: 200
+        };
         tracker_utils.__set__("request", function (options) {
-            requestedOptions = options;
-            return Promise.resolve([mockResponse, mockBody]);
+            if (Array.isArray(mockResponse) && responseIndex >= mockResponse.length ||
+                Array.isArray(mockBody) && responseIndex >= mockBody.length) {
+                return Promise.reject(new Error("Tried to request more times than was expected"));
+            }
+            requestedOptions.push(_.cloneDeep(options));
+            var response = (Array.isArray(mockResponse) ? mockResponse[responseIndex] : mockResponse),
+                body = (Array.isArray(mockBody) ? mockBody[responseIndex] : mockBody);
+            responseIndex++;
+            return Promise.resolve([response, body]);
         });
     });
 
@@ -191,9 +203,9 @@ describe("getCurrentLabels", function () {
         
         tracker_utils.getCurrentLabels(mockConfig, 100)
             .then(function (labels) {
-                expect(requestedOptions.url).toEqual("https://api.github.com/repos/my/repo/issues");
-                expect(requestedOptions.qs.access_token).toEqual(mockConfig.api_key);
-                expect(requestedOptions.qs.since).toEqual(new Date(100).toISOString());
+                expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/issues");
+                expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
+                expect(requestedOptions[0].qs.since).toEqual(new Date(100).toISOString());
                 expect(labels).toEqual({
                     _timestamp: Date.parse("2011-04-22T13:35:49Z"),
                     1347: ["Ready"],
@@ -208,9 +220,9 @@ describe("getCurrentLabels", function () {
         
         tracker_utils.getCurrentLabels(mockConfig)
             .then(function (labels) {
-                expect(requestedOptions.url).toEqual("https://api.github.com/repos/my/repo/issues");
-                expect(requestedOptions.qs.access_token).toEqual(mockConfig.api_key);
-                expect(requestedOptions.qs.since).toBeUndefined();
+                expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/issues");
+                expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
+                expect(requestedOptions[0].qs.since).toBeUndefined();
                 expect(labels).toEqual({
                     _timestamp: Date.parse("2011-04-22T13:35:49Z"),
                     1350: ["Development"]
@@ -224,11 +236,49 @@ describe("getCurrentLabels", function () {
         
         tracker_utils.getCurrentLabels(mockConfig, 100)
             .then(function (labels) {
-                expect(requestedOptions.url).toEqual("https://api.github.com/repos/my/repo/issues");
-                expect(requestedOptions.qs.access_token).toEqual(mockConfig.api_key);
-                expect(requestedOptions.qs.since).toEqual(new Date(100).toISOString());
+                expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/issues");
+                expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
+                expect(requestedOptions[0].qs.since).toEqual(new Date(100).toISOString());
                 expect(labels).toEqual({
                     _timestamp: 100
+                });
+                done();
+            });
+    });
+    
+    it("should request multiple pages, accumulating items from them", function (done) {
+        mockBody = [
+            JSON.stringify([mockIssue1347]),
+            JSON.stringify([mockIssue1350])
+        ];
+        mockResponse = [
+            {
+                statusCode: 200,
+                headers: {
+                    "link": "<https://api.github.com/repos/my/repo/issues?page=2&per_page=100>; rel=\"next\", <https://api.github.com/repos/my/repo/issues?page=2&per_page=100>; rel=\"last\""
+                }
+            },
+            {
+                statusCode: 200
+            }
+        ];
+        
+        tracker_utils.getCurrentLabels(mockConfig, 100)
+            .then(function (labels) {
+                var i;
+                for (i = 0; i < 2; i++) {
+                    expect(requestedOptions[i].url).toEqual("https://api.github.com/repos/my/repo/issues");
+                    expect(requestedOptions[i].qs.access_token).toEqual(mockConfig.api_key);
+                    expect(requestedOptions[i].qs.since).toEqual(new Date(100).toISOString());
+                    expect(requestedOptions[i].qs.per_page).toEqual(100);
+                }
+                expect(requestedOptions[0].qs.page).toBeUndefined();
+                expect(requestedOptions[1].qs.page).toEqual("2");
+             
+                expect(labels).toEqual({
+                    _timestamp: Date.parse("2011-04-22T13:35:49Z"),
+                    1347: ["Ready"],
+                    1350: ["Development"]
                 });
                 done();
             });
