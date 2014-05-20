@@ -33,7 +33,7 @@ var config, log;
 
 fs.mkdirAsync("data")
     .catch(function (err) {
-        // Ignore the error if it already exists
+        // Ignore the error if the directory already exists
     })
     .then(tracker_utils.readFiles)
     .then(function (contents) {
