@@ -31,12 +31,14 @@ var Promise = require("bluebird"),
 
 var config, log;
 
+// Read the configuration file
 tracker_utils.readJSON("config.json")
     .then(function (contents) {
         config = contents;
         if (!config.repo || !config.labels || !config.storage || !config.api_key) {
             throw new Error("Must set repo, labels, storage, and api_key in config file");
         }
+        // Pull the previous log from the storage repo
         return tracker_utils.updateFiles(config);
     })
     .then(function () {
@@ -44,10 +46,13 @@ tracker_utils.readJSON("config.json")
     })
     .then(function (contents) {
         log = contents;
+        
+        // Get issues that have been updated since the last run and get their tracked labels
         console.log("Fetching updated labels");
         return tracker_utils.getCurrentLabels(config, log._timestamp || config.initial_timestamp);
     })
     .then(function (newLabels) {
+        // Update the label changes in the log based on the new labels
         if (!tracker_utils.updateLog(log, newLabels)) {
             console.log("No issues changed - exiting");
             process.exit(0);
@@ -55,6 +60,7 @@ tracker_utils.readJSON("config.json")
         return fs.writeFileAsync("storage/log.json", JSON.stringify(log, null, "  "));
     })
     .then(function () {
+        // Push the changes up to the storage repo
         return tracker_utils.storeFiles(config);
     })
     .then(function () {
