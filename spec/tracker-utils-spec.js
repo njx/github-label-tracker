@@ -72,6 +72,25 @@ describe("updateLog", function () {
         });
     });
 
+    it("should not record a new timestamp/event for an issue if the labels didn't change (but should update log timestamp)", function () {
+        var log = {
+                _timestamp: 1,
+                50: {
+                    labels: ["one", "two"]
+                }
+            },
+            newLabels = {
+                _timestamp: 2,
+                50: ["one", "two"]
+            };
+
+        tracker_utils.updateLog(log, newLabels);
+        expect(log._timestamp).toEqual(2);
+        expect(log[50]).toEqual({
+            labels: ["one", "two"]
+        });
+    });
+
     it("should merge old and new log data, not modifying issues that are not mentioned in the new data", function () {
         var origLog = {
                 _timestamp: 1,
