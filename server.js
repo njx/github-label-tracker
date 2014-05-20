@@ -29,7 +29,7 @@ var Promise = require("bluebird"),
     fs = Promise.promisifyAll(require("fs")),
     tracker_utils = require("./lib/tracker-utils");
 
-var config, log, oldLabels, newLabels;
+var config, log;
 
 fs.mkdirAsync("data")
     .catch(function (err) {
@@ -46,8 +46,7 @@ fs.mkdirAsync("data")
 
         return tracker_utils.getCurrentLabels(config, log._timestamp);
     })
-    .then(function (labels) {
-        newLabels = labels;
+    .then(function (newLabels) {
         tracker_utils.updateLog(log, newLabels);
         return fs.writeFileAsync("data/log.json", JSON.stringify(log, null, "  "));
     })
