@@ -11,6 +11,7 @@ To run this:
     * `labels` - array of labels you want to track; only these labels will be added to the log (e.g. `["Ready", "Development", "Review", "Testing"]`)
     * `storage` - repo where you want to store the log data (e.g. `njx/issue-test-repo-tracking`)
     * `api_key` - a GitHub personal API key (TODO: use app client key / secret)
+    * (optional) `initial_timestamp` - the timestamp to use the first time this is run - set this to a time before any workflow labels are added
 * `npm start`
 
 When it's done, `storage/log.json` will contain the log, and it will also be pushed

@@ -45,7 +45,7 @@ tracker_utils.readJSON("config.json")
     .then(function (contents) {
         log = contents;
         console.log("Fetching updated labels");
-        return tracker_utils.getCurrentLabels(config, log._timestamp);
+        return tracker_utils.getCurrentLabels(config, log._timestamp || config.initial_timestamp);
     })
     .then(function (newLabels) {
         if (!tracker_utils.updateLog(log, newLabels)) {
