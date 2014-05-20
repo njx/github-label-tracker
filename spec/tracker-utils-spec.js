@@ -32,7 +32,24 @@ var rewire = require("rewire"),
     tracker_utils = rewire("../lib/tracker-utils");
 
 describe("updateLog", function () {
-    it("should calculate label changes for a single issue, starting with empty log", function () {
+    it("should add an issue to an empty log", function () {
+        var log = {},
+            newLabels = {
+                _timestamp: 1,
+                50: ["one", "two"]
+            };
+
+        tracker_utils.updateLog(log, newLabels);
+        expect(log._timestamp).toEqual(1);
+        expect(log[50]).toEqual({
+            1: {
+                added: ["one", "two"]
+            },
+            labels: ["one", "two"]
+        });
+    });
+
+    it("should calculate label changes for a single issue, starting with previous log", function () {
         var log = {
                 _timestamp: 1,
                 50: {
