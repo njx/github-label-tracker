@@ -130,7 +130,53 @@ describe("updateLog", function () {
 });
 
 describe("getCurrentLabels", function () {
-    var requestedOptions, mockResponse, mockBody;
+    var mockConfig = {
+            repo: "my/repo",
+            labels: ["Ready", "Development"],
+            api_key: "FAKE_KEY"
+        },
+        mockResponse = {
+            statusCode: 200
+        },
+        mockBody,
+        requestedOptions;
+    
+    var mockIssue1347 = {
+            "url": "https://api.github.com/repos/octocat/Hello-World/issues/1347",
+            "number": 1347,
+            "labels": [
+                {
+                    "url": "https://api.github.com/repos/octocat/Hello-World/labels/bug",
+                    "name": "bug",
+                    "color": "f29513"
+                },
+                {
+                    "url": "https://api.github.com/repos/octocat/Hello-World/labels/Ready",
+                    "name": "Ready",
+                    "color": "f29513"
+                }
+            ],
+            "created_at": "2011-04-22T13:33:48Z",
+            "updated_at": "2011-04-22T13:33:48Z"
+        },
+        mockIssue1350 = {
+            "url": "https://api.github.com/repos/octocat/Hello-World/issues/1350",
+            "number": 1350,
+            "labels": [
+                {
+                    "url": "https://api.github.com/repos/octocat/Hello-World/labels/Development",
+                    "name": "Development",
+                    "color": "f29513"
+                },
+                {
+                    "url": "https://api.github.com/repos/octocat/Hello-World/labels/enhancement",
+                    "name": "enhancement",
+                    "color": "f29513"
+                }
+            ],
+            "created_at": "2011-04-22T13:35:49Z",
+            "updated_at": "2011-04-22T13:35:49Z"
+        };
 
     beforeEach(function () {
         tracker_utils.__set__("request", function (options) {
@@ -140,54 +186,8 @@ describe("getCurrentLabels", function () {
     });
 
     it("should fetch the issues for a repo from GitHub and return the tracked labels in the correct format", function (done) {
-        mockResponse = {
-            statusCode: 200
-        };
         // This isn't all the content from a GitHub response, just the stuff we should care about.
-        mockBody = JSON.stringify([
-            {
-                "url": "https://api.github.com/repos/octocat/Hello-World/issues/1347",
-                "number": 1347,
-                "labels": [
-                    {
-                        "url": "https://api.github.com/repos/octocat/Hello-World/labels/bug",
-                        "name": "bug",
-                        "color": "f29513"
-                    },
-                    {
-                        "url": "https://api.github.com/repos/octocat/Hello-World/labels/Ready",
-                        "name": "Ready",
-                        "color": "f29513"
-                    }
-                ],
-                "created_at": "2011-04-22T13:33:48Z",
-                "updated_at": "2011-04-22T13:33:48Z"
-            },
-            {
-                "url": "https://api.github.com/repos/octocat/Hello-World/issues/1350",
-                "number": 1350,
-                "labels": [
-                    {
-                        "url": "https://api.github.com/repos/octocat/Hello-World/labels/Development",
-                        "name": "Development",
-                        "color": "f29513"
-                    },
-                    {
-                        "url": "https://api.github.com/repos/octocat/Hello-World/labels/enhancement",
-                        "name": "enhancement",
-                        "color": "f29513"
-                    }
-                ],
-                "created_at": "2011-04-22T13:35:49Z",
-                "updated_at": "2011-04-22T13:35:49Z"
-            }
-        ]);
-        
-        var mockConfig = {
-            repo: "my/repo",
-            labels: ["Ready", "Development"],
-            api_key: "FAKE_KEY"
-        };
+        mockBody = JSON.stringify([mockIssue1347, mockIssue1350]);
         
         tracker_utils.getCurrentLabels(mockConfig, 100)
             .then(function (labels) {
@@ -198,6 +198,37 @@ describe("getCurrentLabels", function () {
                     _timestamp: Date.parse("2011-04-22T13:35:49Z"),
                     1347: ["Ready"],
                     1350: ["Development"]
+                });
+                done();
+            });
+    });
+    
+    it("should handle an unspecified initial timestamp", function (done) {
+        mockBody = JSON.stringify([mockIssue1350]);
+        
+        tracker_utils.getCurrentLabels(mockConfig)
+            .then(function (labels) {
+                expect(requestedOptions.url).toEqual("https://api.github.com/repos/my/repo/issues");
+                expect(requestedOptions.qs.access_token).toEqual(mockConfig.api_key);
+                expect(requestedOptions.qs.since).toBeUndefined();
+                expect(labels).toEqual({
+                    _timestamp: Date.parse("2011-04-22T13:35:49Z"),
+                    1350: ["Development"]
+                });
+                done();
+            });
+    });
+    
+    it("should default to specified 'since' timestamp if there are no updates", function (done) {
+        mockBody = "[]";
+        
+        tracker_utils.getCurrentLabels(mockConfig, 100)
+            .then(function (labels) {
+                expect(requestedOptions.url).toEqual("https://api.github.com/repos/my/repo/issues");
+                expect(requestedOptions.qs.access_token).toEqual(mockConfig.api_key);
+                expect(requestedOptions.qs.since).toEqual(new Date(100).toISOString());
+                expect(labels).toEqual({
+                    _timestamp: 100
                 });
                 done();
             });

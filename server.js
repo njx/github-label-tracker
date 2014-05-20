@@ -31,28 +31,29 @@ var Promise = require("bluebird"),
 
 var config, log;
 
-fs.mkdirAsync("data")
-    .catch(function (err) {
-        // Ignore the error if the directory already exists
-    })
-    .then(tracker_utils.readFiles)
+tracker_utils.readJSON("config.json")
     .then(function (contents) {
-        config = contents[0];
-        log    = contents[1];
-
+        config = contents;
         if (!config.repo || !config.labels || !config.storage || !config.api_key) {
             throw new Error("Must set repo, labels, storage, and api_key in config file");
         }
-
+        return tracker_utils.updateFiles(config);
+    })
+    .then(function () {
+        return tracker_utils.readJSON("storage/log.json");
+    })
+    .then(function (contents) {
+        log = contents;
+        console.log("Fetching updated labels");
         return tracker_utils.getCurrentLabels(config, log._timestamp);
     })
     .then(function (newLabels) {
         tracker_utils.updateLog(log, newLabels);
-        return fs.writeFileAsync("data/log.json", JSON.stringify(log, null, "  "));
+        return fs.writeFileAsync("storage/log.json", JSON.stringify(log, null, "  "));
     })
-//    .then(function () {
-//        return tracker_utils.storeFiles(config);
-//    })
+    .then(function () {
+        return tracker_utils.storeFiles(config);
+    })
     .then(function () {
         process.exit(0);
     })
