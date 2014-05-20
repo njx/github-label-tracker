@@ -32,3 +32,9 @@ up to the repo specified in `config.storage`. The log is a JSON file:
 ```
 
 See https://github.com/njx/issue-test-repo-tracking/blob/master/log.json for an example.
+
+Since this can only see label changes whenever it's run, labels that are added and then removed
+in between runs won't be noticed. So, if you're using labels to track Kanban workflow, you might
+not "see" the issue hit each column. You'll need to take that into account, and handle the case
+where a card appears to "jump over" intervening columns, perhaps by allocating the time evenly
+between those columns.
