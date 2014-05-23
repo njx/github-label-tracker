@@ -5,6 +5,7 @@
   "repository": "https://github.com/njx/github-label-tracker.git",
   "license": "MIT",
   "scripts": {
+    "start": "node track-labels",
     "test": "jasmine-node spec"
   },
   "dependencies": {
