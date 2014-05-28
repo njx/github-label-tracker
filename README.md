@@ -19,15 +19,20 @@ up to the repo specified in `config.storage`. The log is a JSON file:
 
 ```
 {
-    "_timestamp": <the last updated timestamp, as returned by Date.getTime()>,
-    <issue number>: {
-        <timestamp of event>: {
-            "added":   <array of added labels>,
-            "removed": <array of removed labels>
+    "timestamp": <the last updated timestamp, as returned by Date.getTime()>,
+    "issueLabels": {
+        <issue number>: {
+            "changes": {
+                <timestamp of event>: {
+                    "added":   <array of added labels>,
+                    "removed": <array of removed labels>
+                },
+                ...
+            },
+            "current": <array of all tracked labels applied to the issue as of the last timestamp>
         },
         ...
-    },
-    ...
+    }
 }
 ```
 

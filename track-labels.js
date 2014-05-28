@@ -49,7 +49,7 @@ tracker_utils.readJSON("config.json")
         
         // Get issues that have been updated since the last run and get their tracked labels
         console.log("Fetching updated labels");
-        return tracker_utils.getCurrentLabels(config, log._timestamp || config.initial_timestamp);
+        return tracker_utils.getCurrentLabels(config, log.timestamp || config.initial_timestamp);
     })
     .then(function (newLabels) {
         // Update the label changes in the log based on the new labels

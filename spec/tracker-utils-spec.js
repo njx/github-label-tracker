@@ -35,115 +35,137 @@ describe("updateLog", function () {
     it("should add an issue to an empty log", function () {
         var log = {},
             newLabels = {
-                _timestamp: 1,
-                50: ["one", "two"]
+                timestamp: 1,
+                issueLabels: {
+                    50: ["one", "two"]
+                }
             };
 
         expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
-        expect(log._timestamp).toEqual(1);
-        expect(log[50]).toEqual({
+        expect(log.timestamp).toEqual(1);
+        expect(log.issueLabels[50].changes).toEqual({
             1: {
                 added: ["one", "two"]
-            },
-            labels: ["one", "two"]
+            }
         });
+        expect(log.issueLabels[50].current).toEqual(["one", "two"]);
     });
 
     it("should calculate label changes for a single issue, starting with previous log", function () {
         var log = {
-                _timestamp: 1,
-                50: {
-                    labels: ["one", "two"]
+                timestamp: 1,
+                issueLabels: {
+                    50: {
+                        changes: {},
+                        current: ["one", "two"]
+                    }
                 }
             },
             newLabels = {
-                _timestamp: 2,
-                50: ["two", "three"]
+                timestamp: 2,
+                issueLabels: {
+                    50: ["two", "three"]
+                }
             };
 
         expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
-        expect(log._timestamp).toEqual(2);
-        expect(log[50]).toEqual({
+        expect(log.timestamp).toEqual(2);
+        expect(log.issueLabels[50].changes).toEqual({
             2: {
                 removed: ["one"],
                 added: ["three"]
-            },
-            labels: ["two", "three"]
+            }
         });
+        expect(log.issueLabels[50].current).toEqual(["two", "three"]);
     });
 
     it("should not record a new timestamp/event for an issue if the labels didn't change (but should update log timestamp if different)", function () {
         var log = {
-                _timestamp: 1,
-                50: {
-                    labels: ["one", "two"]
+                timestamp: 1,
+                issueLabels: {
+                    50: {
+                        changes: {},
+                        current: ["one", "two"]
+                    }
                 }
             },
             newLabels = {
-                _timestamp: 2,
-                50: ["one", "two"]
+                timestamp: 2,
+                issueLabels: {
+                    50: ["one", "two"]
+                }
             };
 
         expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
-        expect(log._timestamp).toEqual(2);
-        expect(log[50]).toEqual({
-            labels: ["one", "two"]
-        });
+        expect(log.timestamp).toEqual(2);
+        expect(log.issueLabels[50].changes).toEqual({});
+        expect(log.issueLabels[50].current).toEqual(["one", "two"]);
     });
     
     it("should return false from updateLog if the timestamp and labels haven't changed", function () {
         var log = {
-                _timestamp: 1,
-                50: {
-                    labels: ["one", "two"]
+                timestamp: 1,
+                issueLabels: {
+                    50: {
+                        changes: {},
+                        current: ["one", "two"]
+                    }
                 }
             },
             newLabels = {
-                _timestamp: 1
+                timestamp: 1,
+                issueLabels: {}
             };
 
         expect(tracker_utils.updateLog(log, newLabels)).toBe(false);
-        expect(log._timestamp).toEqual(1);
-        expect(log[50]).toEqual({
-            labels: ["one", "two"]
-        });
+        expect(log.timestamp).toEqual(1);
+        expect(log.issueLabels[50].changes).toEqual({});
+        expect(log.issueLabels[50].current).toEqual(["one", "two"]);
     });
 
     it("should merge old and new log data, not modifying issues that are not mentioned in the new data", function () {
         var origLog = {
-                _timestamp: 1,
-                25: {
-                    1: {
-                        removed: ["two"]
+                timestamp: 1,
+                issueLabels: {
+                    25: {
+                        changes: {
+                            1: {
+                                removed: ["two"]
+                            }
+                        },
+                        current: ["one"]
                     },
-                    labels: ["one"]
-                },
-                50: {
-                    1: {
-                        added: ["one"]
-                    },
-                    labels: ["one", "two"]
+                    50: {
+                        changes: {
+                            1: {
+                                added: ["one"]
+                            }
+                        },
+                        current: ["one", "two"]
+                    }
                 }
             },
             log = _.cloneDeep(origLog),
             newLabels = {
-                _timestamp: 2,
-                50: ["two", "three"]
+                timestamp: 2,
+                issueLabels: {
+                    50: ["two", "three"]
+                }
             };
 
         expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
-        expect(log._timestamp).toEqual(2);
-        expect(log[25]).toEqual(origLog[25]);
-        expect(log[50]).toEqual({
+        expect(log.timestamp).toEqual(2);
+        expect(log.issueLabels[25]).toEqual(origLog.issueLabels[25]);
+        expect(log.issueLabels[50].changes).toEqual({
             1: {
                 added: ["one"]
             },
             2: {
                 removed: ["one"],
                 added: ["three"]
-            },
-            labels: ["two", "three"]
+            }
         });
+        expect(log.issueLabels[50].current).toEqual(["two", "three"]);
     });
 });
 
@@ -203,8 +225,8 @@ describe("getCurrentLabels", function () {
             statusCode: 200
         };
         tracker_utils.__set__("request", function (options) {
-            if (Array.isArray(mockResponse) && responseIndex >= mockResponse.length ||
-                Array.isArray(mockBody) && responseIndex >= mockBody.length) {
+            if ((Array.isArray(mockResponse) && responseIndex >= mockResponse.length) ||
+                    (Array.isArray(mockBody) && responseIndex >= mockBody.length)) {
                 return Promise.reject(new Error("Tried to request more times than was expected"));
             }
             requestedOptions.push(_.cloneDeep(options));
@@ -225,9 +247,11 @@ describe("getCurrentLabels", function () {
                 expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
                 expect(requestedOptions[0].qs.since).toEqual(new Date(100).toISOString());
                 expect(labels).toEqual({
-                    _timestamp: Date.parse("2011-04-22T13:35:49Z"),
-                    1347: ["Ready"],
-                    1350: ["Development"]
+                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
+                    issueLabels: {
+                        1347: ["Ready"],
+                        1350: ["Development"]
+                    }
                 });
                 done();
             });
@@ -242,8 +266,10 @@ describe("getCurrentLabels", function () {
                 expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
                 expect(requestedOptions[0].qs.since).toBeUndefined();
                 expect(labels).toEqual({
-                    _timestamp: Date.parse("2011-04-22T13:35:49Z"),
-                    1350: ["Development"]
+                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
+                    issueLabels: {
+                        1350: ["Development"]
+                    }
                 });
                 done();
             });
@@ -258,7 +284,8 @@ describe("getCurrentLabels", function () {
                 expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
                 expect(requestedOptions[0].qs.since).toEqual(new Date(100).toISOString());
                 expect(labels).toEqual({
-                    _timestamp: 100
+                    timestamp: 100,
+                    issueLabels: {}
                 });
                 done();
             });
@@ -294,9 +321,11 @@ describe("getCurrentLabels", function () {
                 expect(requestedOptions[1].qs.page).toEqual("2");
              
                 expect(labels).toEqual({
-                    _timestamp: Date.parse("2011-04-22T13:35:49Z"),
-                    1347: ["Ready"],
-                    1350: ["Development"]
+                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
+                    issueLabels: {
+                        1347: ["Ready"],
+                        1350: ["Development"]
+                    }
                 });
                 done();
             });
