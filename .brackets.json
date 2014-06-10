@@ -7,5 +7,8 @@
         "indent": 4,
         "maxerr": 50,
         "es5": true
+    },
+    "language.fileExtensions": {
+        "tmpl": "html"
     }
 }

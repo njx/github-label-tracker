@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            th {
+                text-align: left;
+            }
+            
+            tr, th {
+                padding: 3px;
+            }
+
+            th.right, td.right {
+                text-align: right;
+            }
+
+            thead th {
+                border-bottom: 1px solid grey;
+                font-weight: normal;
+            }
+
+            tr.striped {
+                background-color: #eee;
+            }
+
+            a {
+                text-decoration: underline;
+                color: #22e;
+            }
+
+            body {
+                font-family: "Helvetica Neue", "Helvetica", "Arial";
+            }
+        </style>
+    </head>
+<body>
+    <h1>
+        <a href="https://github.com/adobe/brackets/wiki/Pull-Request-Process">Brackets Pull Requests</a>
+    </h1>
+    <p>
+        Generated: ${reportTime}
+    </p>
+    <% sections.forEach(function (section) { %>
+    <h2>
+        ${section.section}
+    </h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th><th>Title</th>
+                <th>Contributor</th>
+                <% if (section.section.indexOf("Awaiting") === -1) { %><th>Assigned To</th> <% } %>
+                <th class="right" align="right"><% if (section.section.indexOf("Overdue") > -1) { %>Days<br>Overdue<% } else { %>Days<br>Left<% } %></th>
+            </tr>
+        </thead>
+        <tbody>
+            <% row = 1; section.pullRequests.forEach(function (pr) { %>
+            <tr<% if (row++ % 2 === 0) { %> class="striped"<% } %>>
+                <td class="right">${pr.id}</td><td><a href="https://github.com/${config.repo}/pull/${pr.id}">${pr.title}</a></td>
+                <td>${pr.user}</td>
+                <% if (pr.assignee !== null) { %><td>${pr.assignee}</td> <% } %>
+                <td class="right" align="right">${Math.floor(pr.timer / (24*60*60*1000))}</td>
+            </tr>
+            <% }); %>
+        </tbody>    
+    </table>
+    <% }); %>
+    
+    <h2>
+        Stats
+    </h2>
+    <table>
+        <tbody>
+            <tr>
+                <th>Overdue</th>
+                <td>${stats.overdue}</td>
+            </tr>
+            <tr>
+                <th>Available</th>
+                <td>${stats.available}</td>
+            </tr>
+            <tr>
+                <th>Total Open PRs</th>
+                <td>${stats.total}</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
