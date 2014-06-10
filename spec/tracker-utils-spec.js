@@ -169,11 +169,12 @@ describe("updateLog", function () {
     });
 });
 
-describe("getCurrentLabels", function () {
+describe("getLatestIssueInfo", function () {
     var mockConfig,
         mockResponse,
         mockBody,
-        requestedOptions;
+        requestedOptions,
+        oldRequestObject;
     
     var mockIssue1347 = {
             "url": "https://api.github.com/repos/octocat/Hello-World/issues/1347",
@@ -210,7 +211,58 @@ describe("getCurrentLabels", function () {
             ],
             "created_at": "2011-04-22T13:35:49Z",
             "updated_at": "2011-04-22T13:35:49Z"
+        },
+        mockPR1352 = {
+            "url": "https://api.github.com/repos/octocat/Hello-World/issues/1352",
+            "number": 1352,
+            "title": "Makes the frobbitz less susceptible to frammis",
+            "labels": [
+                {
+                    "url": "https://api.github.com/repos/octocat/Hello-World/labels/PR Triage complete",
+                    "name": "PR Triage complete",
+                    "color": "f29513"
+                }
+            ],
+            "user": {
+                "login": "UserThatCreated"
+            },
+            "created_at": "2011-04-22T13:35:49Z",
+            "updated_at": "2011-04-22T13:35:49Z",
+            "assignee": null,
+            "pull_request": {
+                "url": "https://api.github.com/repos/octocat/Hello-World/pulls/1352",
+                "html_url": "https://github.com/octocat/Hello-World/pull/1352",
+                "diff_url": "https://github.com/octocat/Hello-World/pull/1352.diff",
+                "patch_url": "https://github.com/octocat/Hello-World/pull/1352.patch"
+            }
+        },
+        mockPR1353 = {
+            "url": "https://api.github.com/repos/octocat/Hello-World/issues/1353",
+            "number": 1353,
+            "title": "Take care of those nasty hobbitses",
+            "labels": [
+                {
+                    "url": "https://api.github.com/repos/octocat/Hello-World/labels/PR Triage complete",
+                    "name": "PR Triage complete",
+                    "color": "f29513"
+                }
+            ],
+            "user": {
+                "login": "UserThatCreated"
+            },
+            "created_at": "2011-04-22T13:35:49Z",
+            "updated_at": "2011-04-22T13:35:49Z",
+            "assignee": {
+                "login": "ThePersonWhoIsAssigned"
+            },
+            "pull_request": {
+                "url": "https://api.github.com/repos/octocat/Hello-World/pulls/1353",
+                "html_url": "https://github.com/octocat/Hello-World/pull/1353",
+                "diff_url": "https://github.com/octocat/Hello-World/pull/1353.diff",
+                "patch_url": "https://github.com/octocat/Hello-World/pull/1353.patch"
+            }
         };
+
 
     beforeEach(function () {
         var responseIndex = 0;
@@ -224,6 +276,7 @@ describe("getCurrentLabels", function () {
         mockResponse = {
             statusCode: 200
         };
+        oldRequestObject = tracker_utils.__get__("request");
         tracker_utils.__set__("request", function (options) {
             if ((Array.isArray(mockResponse) && responseIndex >= mockResponse.length) ||
                     (Array.isArray(mockBody) && responseIndex >= mockBody.length)) {
@@ -236,22 +289,27 @@ describe("getCurrentLabels", function () {
             return Promise.resolve([response, body]);
         });
     });
+    
+    afterEach(function () {
+        tracker_utils.__set__("request", oldRequestObject);
+    });
 
     it("should fetch the issues for a repo from GitHub and return the tracked labels in the correct format", function (done) {
         // This isn't all the content from a GitHub response, just the stuff we should care about.
         mockBody = JSON.stringify([mockIssue1347, mockIssue1350]);
         
-        tracker_utils.getCurrentLabels(mockConfig, 100)
-            .then(function (labels) {
+        tracker_utils.getLatestIssueInfo(mockConfig, 100)
+            .then(function (currentInfo) {
                 expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/issues");
                 expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
                 expect(requestedOptions[0].qs.since).toEqual(new Date(100).toISOString());
-                expect(labels).toEqual({
+                expect(currentInfo).toEqual({
                     timestamp: Date.parse("2011-04-22T13:35:49Z"),
                     issueLabels: {
                         1347: ["Ready"],
                         1350: ["Development"]
-                    }
+                    },
+                    pullRequests: {}
                 });
                 done();
             });
@@ -260,16 +318,17 @@ describe("getCurrentLabels", function () {
     it("should handle an unspecified initial timestamp", function (done) {
         mockBody = JSON.stringify([mockIssue1350]);
         
-        tracker_utils.getCurrentLabels(mockConfig)
-            .then(function (labels) {
+        tracker_utils.getLatestIssueInfo(mockConfig)
+            .then(function (currentInfo) {
                 expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/issues");
                 expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
                 expect(requestedOptions[0].qs.since).toBeUndefined();
-                expect(labels).toEqual({
+                expect(currentInfo).toEqual({
                     timestamp: Date.parse("2011-04-22T13:35:49Z"),
                     issueLabels: {
                         1350: ["Development"]
-                    }
+                    },
+                    pullRequests: {}
                 });
                 done();
             });
@@ -278,14 +337,15 @@ describe("getCurrentLabels", function () {
     it("should default to specified 'since' timestamp if there are no updates", function (done) {
         mockBody = "[]";
         
-        tracker_utils.getCurrentLabels(mockConfig, 100)
-            .then(function (labels) {
+        tracker_utils.getLatestIssueInfo(mockConfig, 100)
+            .then(function (currentInfo) {
                 expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/issues");
                 expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
                 expect(requestedOptions[0].qs.since).toEqual(new Date(100).toISOString());
-                expect(labels).toEqual({
+                expect(currentInfo).toEqual({
                     timestamp: 100,
-                    issueLabels: {}
+                    issueLabels: {},
+                    pullRequests: {}
                 });
                 done();
             });
@@ -308,8 +368,8 @@ describe("getCurrentLabels", function () {
             }
         ];
         
-        tracker_utils.getCurrentLabels(mockConfig, 100)
-            .then(function (labels) {
+        tracker_utils.getLatestIssueInfo(mockConfig, 100)
+            .then(function (currentInfo) {
                 var i;
                 for (i = 0; i < 2; i++) {
                     expect(requestedOptions[i].url).toEqual("https://api.github.com/repos/my/repo/issues");
@@ -320,12 +380,249 @@ describe("getCurrentLabels", function () {
                 expect(requestedOptions[0].qs.page).toBeUndefined();
                 expect(requestedOptions[1].qs.page).toEqual("2");
              
-                expect(labels).toEqual({
+                expect(currentInfo).toEqual({
                     timestamp: Date.parse("2011-04-22T13:35:49Z"),
                     issueLabels: {
                         1347: ["Ready"],
                         1350: ["Development"]
+                    },
+                    pullRequests: {}
+                });
+                done();
+            });
+    });
+    
+    it("should return pull request data for new PRs", function (done) {
+        mockBody = [
+            JSON.stringify([mockPR1352])
+        ];
+        tracker_utils.getLatestIssueInfo(mockConfig)
+            .then(function (currentInfo) {
+                expect(currentInfo).toEqual({
+                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
+                    issueLabels: {
+                        1352: []
+                    },
+                    pullRequests: {
+                        1352: {
+                            "title": mockPR1352.title,
+                            "assignee": null,
+                            "user": "UserThatCreated",
+                            "created": Date.parse("2011-04-22T13:35:49Z"),
+                            "state": tracker_utils.PR_STATE_NEW
+                        }
                     }
+                });
+                done();
+            });
+    });
+    
+    it("should return pull request data for in-triage PRs", function (done) {
+        mockBody = [
+            JSON.stringify([mockPR1353])
+        ];
+        tracker_utils.getLatestIssueInfo(mockConfig)
+            .then(function (currentInfo) {
+                expect(currentInfo).toEqual({
+                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
+                    issueLabels: {
+                        1353: []
+                    },
+                    pullRequests: {
+                        1353: {
+                            "title": mockPR1353.title,
+                            "assignee": mockPR1353.assignee.login,
+                            "user": "UserThatCreated",
+                            "created": Date.parse("2011-04-22T13:35:49Z"),
+                            "state": tracker_utils.PR_STATE_IN_TRIAGE
+                        }
+                    }
+                });
+                done();
+            });
+    });
+    
+    it("should return pull request data for triage complete PRs", function (done) {
+        mockBody = [
+            JSON.stringify([mockPR1352])
+        ];
+        mockConfig.triageCompleteLabel = "PR Triage complete";
+        mockConfig.labels.push("PR Triage complete");
+        tracker_utils.getLatestIssueInfo(mockConfig)
+            .then(function (currentInfo) {
+                expect(currentInfo).toEqual({
+                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
+                    issueLabels: {
+                        1352: ["PR Triage complete"]
+                    },
+                    pullRequests: {
+                        1352: {
+                            "title": mockPR1352.title,
+                            "assignee": null,
+                            "user": "UserThatCreated",
+                            "created": Date.parse("2011-04-22T13:35:49Z"),
+                            "state": tracker_utils.PR_STATE_TRIAGED
+                        }
+                    }
+                });
+                done();
+            });
+    });
+    
+    it("should return pull request data for in-review PRs", function (done) {
+        mockBody = [
+            JSON.stringify([mockPR1353])
+        ];
+        mockConfig.triageCompleteLabel = "PR Triage complete";
+        mockConfig.labels.push("PR Triage complete");
+        tracker_utils.getLatestIssueInfo(mockConfig)
+            .then(function (currentInfo) {
+                expect(currentInfo).toEqual({
+                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
+                    issueLabels: {
+                        1353: ["PR Triage complete"]
+                    },
+                    pullRequests: {
+                        1353: {
+                            "title": mockPR1353.title,
+                            "assignee": mockPR1353.assignee.login,
+                            "user": "UserThatCreated",
+                            "created": Date.parse("2011-04-22T13:35:49Z"),
+                            "state": tracker_utils.PR_STATE_IN_REVIEW
+                        }
+                    }
+                });
+                done();
+            });
+    });
+});
+
+describe("getLatestCommentInfo", function () {
+    var mockConfig,
+        mockResponse,
+        mockBody,
+        requestedOptions,
+        oldRequestObject;
+
+
+    beforeEach(function () {
+        var responseIndex = 0;
+
+        requestedOptions = [];
+        mockConfig = {
+            repo: "my/repo",
+            labels: ["Ready", "Development"],
+            api_key: "FAKE_KEY"
+        };
+        mockResponse = {
+            statusCode: 200
+        };
+        tracker_utils.__set__("request", function (options) {
+            if ((Array.isArray(mockResponse) && responseIndex >= mockResponse.length) ||
+                    (Array.isArray(mockBody) && responseIndex >= mockBody.length)) {
+                return Promise.reject(new Error("Tried to request more times than was expected"));
+            }
+            requestedOptions.push(_.cloneDeep(options));
+            var response = (Array.isArray(mockResponse) ? mockResponse[responseIndex] : mockResponse),
+                body = (Array.isArray(mockBody) ? mockBody[responseIndex] : mockBody);
+            responseIndex++;
+            return Promise.resolve([response, body]);
+        });
+    });
+    
+    afterEach(function () {
+        tracker_utils.__set__("request", oldRequestObject);
+    });
+    
+    var comment1 = {
+        "url": "https://api.github.com/repos/octocat/Hello-World/issues/comments/1",
+        "html_url": "https://github.com/octocat/Hello-World/pull/22#issuecomment-1",
+        "issue_url": "https://api.github.com/repos/octocat/Hello-World/issues/22",
+        "id": 1,
+        "user": {
+            "login": "ACommenter"
+        },
+        "created_at": "2014-06-10T18:35:37Z",
+        "updated_at": "2014-06-10T18:35:37Z",
+        "body": "I like saying hello."
+    };
+    
+    var comment2 = {
+        "url": "https://api.github.com/repos/octocat/Hello-World/issues/comments/2",
+        "html_url": "https://github.com/octocat/Hello-World/issues/33#issuecomment-2",
+        "issue_url": "https://api.github.com/repos/octocat/Hello-World/issues/33",
+        "id": 2,
+        "user": {
+            "login": "AnIssueCommenter"
+        },
+        "created_at": "2014-06-10T18:31:43Z",
+        "updated_at": "2014-06-10T18:31:43Z",
+        "body": "I'd just like to say cheese."
+    };
+    
+    it("should fetch the comments for a repo from GitHub and return the comment data in the correct format", function (done) {
+        // This isn't all the content from a GitHub response, just the stuff we should care about.
+        mockBody = JSON.stringify([comment1, comment2]);
+
+        tracker_utils.getLatestComments(mockConfig, 100)
+            .then(function (latestComments) {
+                expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/comments");
+                expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
+                expect(requestedOptions[0].qs.sort).toEqual("created");
+                expect(requestedOptions[0].qs.direction).toEqual("desc");
+                expect(requestedOptions[0].qs.since).toEqual(new Date(100).toISOString());
+                expect(latestComments).toEqual({
+                    timestamp: Date.parse("2014-06-10T18:35:37Z"),
+                    prCommentTimestamps: [
+                        {
+                            id: 22,
+                            user: "ACommenter",
+                            created: Date.parse("2014-06-10T18:35:37Z")
+                        }
+                    ]
+                });
+                done();
+            });
+    });
+    
+    it("should request multiple pages, accumulating items from them", function (done) {
+        mockBody = [
+            JSON.stringify([comment2]),
+            JSON.stringify([comment1])
+        ];
+        mockResponse = [
+            {
+                statusCode: 200,
+                headers: {
+                    "link": "<https://api.github.com/repos/my/repo/comments?page=2&per_page=100>; rel=\"next\", <https://api.github.com/repos/my/repo/comments?page=2&per_page=100>; rel=\"last\""
+                }
+            },
+            {
+                statusCode: 200
+            }
+        ];
+
+        tracker_utils.getLatestComments(mockConfig, 100)
+            .then(function (latestComments) {
+                var i;
+                for (i = 0; i < 2; i++) {
+                    expect(requestedOptions[i].url).toEqual("https://api.github.com/repos/my/repo/comments");
+                    expect(requestedOptions[i].qs.access_token).toEqual(mockConfig.api_key);
+                    expect(requestedOptions[i].qs.since).toEqual(new Date(100).toISOString());
+                    expect(requestedOptions[i].qs.per_page).toEqual(100);
+                }
+                expect(requestedOptions[0].qs.page).toBeUndefined();
+                expect(requestedOptions[1].qs.page).toEqual("2");
+
+                expect(latestComments).toEqual({
+                    timestamp: Date.parse("2014-06-10T18:35:37Z"),
+                    prCommentTimestamps: [
+                        {
+                            id: 22,
+                            user: "ACommenter",
+                            created: Date.parse("2014-06-10T18:35:37Z")
+                        }
+                    ]
                 });
                 done();
             });
