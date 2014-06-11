@@ -273,6 +273,11 @@ describe("updateLog", function () {
                         id: 1099,
                         user: "TheAssignee",
                         created: Date.parse("2014-06-08T09:09:09Z")
+                    },
+                    {
+                        id: 999,
+                        user: "DoesNotMatter",
+                        created: Date.parse("2014-06-07T08:08:08Z")
                     }
                 ]
             };
