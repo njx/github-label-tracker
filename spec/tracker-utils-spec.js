@@ -21,7 +21,6 @@
  *
  */
 
-/*jslint vars: true, plusplus: true, nomen: true, node: true, indent: 4, maxerr: 50 */
 /*global expect, describe, it, beforeEach, afterEach, createSpy, waitsFor */
 
 "use strict";
