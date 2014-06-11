@@ -27,6 +27,8 @@ var Promise = require("bluebird"),
     fs = Promise.promisifyAll(require("fs")),
     tracker_utils = require("./lib/tracker-utils");
 
+Promise.longStackTraces();
+
 var config;
 
 // Read the configuration file
@@ -66,5 +68,6 @@ tracker_utils.readJSON("config.json")
     })
     .catch(function (err) {
         console.error(err);
+        console.error(err.stack);
         process.exit(1);
     });

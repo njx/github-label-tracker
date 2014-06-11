@@ -241,6 +241,7 @@ describe("updateLog", function () {
     
     it("should merge comment info", function () {
         var log = {
+            timestamp: 10,
             pullRequests: {
                 1099: {
                     title: "Shiny Pull Request",
@@ -281,7 +282,7 @@ describe("updateLog", function () {
                     }
                 ]
             };
-        tracker_utils.updateLog(log, issueInfo, latestComments);
+        expect(tracker_utils.updateLog(log, issueInfo, latestComments)).toBe(true);
         expect(log.pullRequests[1099].latestUserComment).toEqual(Date.parse("2014-06-09T10:10:10Z"));
         expect(log.pullRequests[1099].latestAssigneeComment).toEqual(Date.parse("2014-06-08T09:09:09Z"));
     });
@@ -762,7 +763,7 @@ describe("getLatestCommentInfo", function () {
 
         tracker_utils.getLatestComments(mockConfig, 100)
             .then(function (latestComments) {
-                expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/comments");
+                expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/issues/comments");
                 expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
                 expect(requestedOptions[0].qs.sort).toEqual("created");
                 expect(requestedOptions[0].qs.direction).toEqual("desc");
@@ -802,7 +803,7 @@ describe("getLatestCommentInfo", function () {
             .then(function (latestComments) {
                 var i;
                 for (i = 0; i < 2; i++) {
-                    expect(requestedOptions[i].url).toEqual("https://api.github.com/repos/my/repo/comments");
+                    expect(requestedOptions[i].url).toEqual("https://api.github.com/repos/my/repo/issues/comments");
                     expect(requestedOptions[i].qs.access_token).toEqual(mockConfig.api_key);
                     expect(requestedOptions[i].qs.since).toEqual(new Date(100).toISOString());
                     expect(requestedOptions[i].qs.per_page).toEqual(100);
@@ -831,7 +832,7 @@ describe("getLatestCommentInfo", function () {
         mockConfig.firstRun = true;
         tracker_utils.getLatestComments(mockConfig, 100)
             .then(function (latestComments) {
-                expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/comments");
+                expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/issues/comments");
                 expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
                 expect(requestedOptions[0].qs.sort).toEqual("created");
                 expect(requestedOptions[0].qs.direction).toEqual("desc");
