@@ -24,8 +24,11 @@
 "use strict";
 
 var Promise = require("bluebird"),
-    fs = Promise.promisifyAll(require("fs")),
-    tracker_utils = require("./lib/tracker-utils"),
+    fs = require("fs"),
     report_utils = require("./lib/report-utils");
 
-Promise.longStackTraces();
+var config = JSON.parse(fs.readFileSync("config.json", "utf8")),
+    log = JSON.parse(fs.readFileSync("storage/log.json", "utf8")),
+    report = report_utils.generateReport(config, log);
+
+fs.writeFileSync("pr-report.html", report);

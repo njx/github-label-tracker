@@ -1,15 +1,63 @@
 <!DOCTYPE html>
 <html>
 <body>
-    Overdue, Awaiting Review
-    Overdue, Awaiting Triage
-    Awaiting Triage
-    Awaiting Review
-    Overdue, In Review
-    Overdue, In Triage
-    Overdue from user, In Review
-    Overdue from user, In Triage
-    In Review
-    In Triage
+    <style>
+        th {
+            text-align: left;
+        }
+        
+        th.right, td.right {
+            text-align: right;
+        }
+        
+        thead th {
+            border-bottom: 1px solid grey;
+            font-weight: normal;
+        }
+        
+        tr.striped {
+            background-color: #eee;
+        }
+        
+        a {
+            text-decoration: underline;
+            color: #22e;
+        }
+        
+        body {
+            font-family: "Helvetica Neue", "Helvetica", "Arial";
+        }
+    </style>
+    <h1>
+        Brackets Pull Requests
+    </h1>
+    <p>
+        Generated: ${reportTime}
+    </p>
+    <% sections.forEach(function (section) { %>
+    <h2>
+        ${section.section}
+    </h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th><th>Title</th>
+                <th>Contributor</th>
+                <% if (section.section.indexOf("Awaiting") === -1) { %><th>Assigned To</th> <% } %>
+                <th class="right"><% if (section.section.indexOf("Overdue") > -1) { %>Overdue<% } else { %>Remaining<% } %></th>
+            </tr>
+        </thead>
+        <tbody>
+            <% row = 1; section.pullRequests.forEach(function (pr) { %>
+            <tr<% if (row++ % 2 === 0) { %> class="striped"<% } %>>
+                <td class="right">${pr.id}</td><td><a href="https://github.com/${config.repo}/pull/${pr.id}">${pr.title}</a></td>
+                <td>${pr.user}</td>
+                <% if (pr.assignee !== null) { %><td>${pr.assignee}</td> <% } %>
+                <td class="right">${Math.round(pr.timer / (24*60*60*1000))} days</td>
+            </tr>
+            <% }); %>
+        </tbody>    
+    </table>
+    <% }); %>
 </body>
 </html>

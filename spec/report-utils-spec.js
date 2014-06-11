@@ -161,6 +161,57 @@ describe("getReportState", function () {
         });
     });
     
+    it("should identify overdue in triage with no comments", function () {
+        var pr = {
+            state: tracker_utils.PR_STATE_IN_TRIAGE,
+            created: 100
+        };
+        
+        expect(report_utils.getReportState(pr, 250, 100)).toEqual({
+            reportState: report_utils.RS_OVERDUE_IN_TRIAGE,
+            timer: 50
+        });
+    });
+    
+    it("should identify overdue in triage with no assignee comments", function () {
+        var pr = {
+            state: tracker_utils.PR_STATE_IN_TRIAGE,
+            created: 100,
+            latestUserComment: 150
+        };
+        
+        expect(report_utils.getReportState(pr, 201, 100)).toEqual({
+            reportState: report_utils.RS_OVERDUE_IN_TRIAGE,
+            timer: 1
+        });
+    });
+    
+    it("should identify overdue from user in triage with no user comments", function () {
+        var pr = {
+            state: tracker_utils.PR_STATE_IN_TRIAGE,
+            created: 100,
+            latestAssigneeComment: 125
+        };
+        
+        expect(report_utils.getReportState(pr, 250, 100)).toEqual({
+            reportState: report_utils.RS_OVERDUE_FROM_USER_IN_TRIAGE,
+            timer: 25
+        });
+    });
+    
+    it("should identify in triage with no user comments", function () {
+        var pr = {
+            state: tracker_utils.PR_STATE_IN_TRIAGE,
+            created: 100,
+            latestAssigneeComment: 125
+        };
+
+        expect(report_utils.getReportState(pr, 199, 100)).toEqual({
+            reportState: report_utils.RS_IN_TRIAGE,
+            timer: 26
+        });
+    });
+    
     it("should identify user overdue in triage", function () {
         var pr = {
             state: tracker_utils.PR_STATE_IN_TRIAGE,
@@ -320,6 +371,171 @@ describe("getReportState", function () {
     });
 });
 
-describe("generateReportModel", function () {
+describe("mergeReportState", function () {
+    it("should merge report state into the pull request data", function () {
+        var pullRequests = {
+            1000: {
+                state: tracker_utils.PR_STATE_NEW,
+                created: 100
+            },
+            1001: {
+                state: tracker_utils.PR_STATE_TRIAGED,
+                triageCompleted: 25
+            }
+        };
+        expect(report_utils.mergeReportState(pullRequests, 150, 100)).toEqual({
+            1000: {
+                state: tracker_utils.PR_STATE_NEW,
+                created: 100,
+                reportState: report_utils.RS_AWAITING_TRIAGE,
+                timer: 50,
+                id: 1000
+            },
+            1001: {
+                state: tracker_utils.PR_STATE_TRIAGED,
+                triageCompleted: 25,
+                reportState: report_utils.RS_OVERDUE_AWAITING_REVIEW,
+                timer: 25,
+                id: 1001
+            }
+        });
+    });
+});
+
+describe("sortIntoSections", function () {
+    it("should sort pull requests into a sorted, section data structure", function () {
+        var pullRequests = {
+            1000: {
+                reportState: report_utils.RS_IN_REVIEW,
+                timer: 1
+            },
+            1001: {
+                reportState: report_utils.RS_OVERDUE_IN_REVIEW,
+                timer: 1
+            },
+            1002: {
+                reportState: report_utils.RS_OVERDUE_AWAITING_REVIEW,
+                timer: 1
+            },
+            1003: {
+                reportState: report_utils.RS_OVERDUE_IN_TRIAGE,
+                timer: 1
+            },
+            1004: {
+                reportState: report_utils.RS_AWAITING_TRIAGE,
+                timer: 1
+            },
+            1005: {
+                reportState: report_utils.RS_IN_TRIAGE,
+                timer: 1
+            },
+            1006: {
+                reportState: report_utils.RS_AWAITING_REVIEW,
+                timer: 1
+            },
+            1007: {
+                reportState: report_utils.RS_OVERDUE_FROM_USER_IN_TRIAGE,
+                timer: 1
+            },
+            1008: {
+                reportState: report_utils.RS_OVERDUE_FROM_USER_IN_REVIEW,
+                timer: 1
+            },
+            1009: {
+                reportState: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
+                timer: 1
+            }
+        };
+
+        expect(report_utils.sortIntoSections(pullRequests)).toEqual([
+            {
+                section: report_utils.RS_OVERDUE_AWAITING_REVIEW,
+                pullRequests: [ pullRequests[1002] ]
+            },
+            {
+                section: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
+                pullRequests: [ pullRequests[1009] ]
+            },
+            {
+                section: report_utils.RS_AWAITING_TRIAGE,
+                pullRequests: [ pullRequests[1004] ]
+            },
+            {
+                section: report_utils.RS_AWAITING_REVIEW,
+                pullRequests: [ pullRequests[1006] ]
+            },
+            {
+                section: report_utils.RS_OVERDUE_IN_REVIEW,
+                pullRequests: [ pullRequests[1001] ]
+            },
+            {
+                section: report_utils.RS_OVERDUE_IN_TRIAGE,
+                pullRequests: [ pullRequests[1003] ]
+            },
+            {
+                section: report_utils.RS_OVERDUE_FROM_USER_IN_REVIEW,
+                pullRequests: [ pullRequests[1008] ]
+            },
+            {
+                section: report_utils.RS_OVERDUE_FROM_USER_IN_TRIAGE,
+                pullRequests: [ pullRequests[1007] ]
+            },
+            {
+                section: report_utils.RS_IN_REVIEW,
+                pullRequests: [ pullRequests[1000] ]
+            },
+            {
+                section: report_utils.RS_IN_TRIAGE,
+                pullRequests: [ pullRequests[1005] ]
+            }
+        ]);
+    });
     
+    it("should sort pull requests by timer", function () {
+        var pullRequests = {
+            1000: {
+                reportState: report_utils.RS_AWAITING_TRIAGE,
+                timer: 90
+            },
+            1001: {
+                reportState: report_utils.RS_AWAITING_TRIAGE,
+                timer: 92
+            },
+            1002: {
+                reportState: report_utils.RS_AWAITING_TRIAGE,
+                timer: 40
+            },
+            1003: {
+                reportState: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
+                timer: 90
+            },
+            1004: {
+                reportState: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
+                timer: 92
+            },
+            1005: {
+                reportState: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
+                timer: 40
+            }
+        };
+        
+        expect(report_utils.sortIntoSections(pullRequests)).toEqual([
+            {
+                section: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
+                pullRequests: [
+                    pullRequests[1004],
+                    pullRequests[1003],
+                    pullRequests[1005]
+                ]
+            },
+            {
+                section: report_utils.RS_AWAITING_TRIAGE,
+                pullRequests: [
+                    pullRequests[1002],
+                    pullRequests[1000],
+                    pullRequests[1001]
+                ]
+            }
+        ]);
+    });
 });
