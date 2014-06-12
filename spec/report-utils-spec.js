@@ -539,3 +539,45 @@ describe("sortIntoSections", function () {
         ]);
     });
 });
+
+describe("generateStatistics", function () {
+    it("should count the total, overdue, available items", function () {
+        var sections = [
+            {
+                section: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
+                pullRequests: [
+                    {},
+                    {},
+                    {}
+                ]
+            },
+            {
+                section: report_utils.RS_AWAITING_TRIAGE,
+                pullRequests: [
+                    {}
+                ]
+            },
+            {
+                section: report_utils.RS_IN_TRIAGE,
+                pullRequests: [
+                    {},
+                    {},
+                    {},
+                    {}
+                ]
+            },
+            {
+                section: report_utils.RS_AWAITING_REVIEW,
+                pullRequests: [
+                    {},
+                    {}
+                ]
+            }
+        ];
+        expect(report_utils.generateStatistics(sections)).toEqual({
+            total: 10,
+            overdue: 3,
+            available: 6
+        });
+    });
+});
