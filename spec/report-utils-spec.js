@@ -402,6 +402,34 @@ describe("mergeReportState", function () {
     });
 });
 
+describe("markOldRequests", function () {
+    it("should mark reqeusts prior to a certain number as old", function () {
+        var pullRequests = {
+            1000: {
+                id: 1000
+            },
+            1100: {
+                id: 1100
+            },
+            1101: {
+                id: 1101
+            }
+        };
+        expect(report_utils.markOldRequests(pullRequests, 1100)).toEqual({
+            1000: {
+                id: 1000,
+                old: true
+            },
+            1100: {
+                id: 1100
+            },
+            1101: {
+                id: 1101
+            }
+        });
+    });
+});
+
 describe("sortIntoSections", function () {
     it("should sort pull requests into a sorted, section data structure", function () {
         var pullRequests = {
@@ -535,6 +563,98 @@ describe("sortIntoSections", function () {
                     pullRequests[1000],
                     pullRequests[1001]
                 ]
+            }
+        ]);
+    });
+    
+    it("should separate old requests", function () {
+        var pullRequests = {
+            1000: {
+                reportState: report_utils.RS_IN_REVIEW,
+                timer: 1,
+                old: true
+            },
+            1001: {
+                reportState: report_utils.RS_OVERDUE_IN_REVIEW,
+                timer: 1,
+                old: true
+            },
+            1002: {
+                reportState: report_utils.RS_OVERDUE_AWAITING_REVIEW,
+                timer: 1,
+                old: true
+            },
+            1003: {
+                reportState: report_utils.RS_OVERDUE_IN_TRIAGE,
+                timer: 1,
+                old: true
+            },
+            1004: {
+                reportState: report_utils.RS_AWAITING_TRIAGE,
+                timer: 1
+            },
+            1005: {
+                reportState: report_utils.RS_IN_TRIAGE,
+                timer: 1
+            },
+            1006: {
+                reportState: report_utils.RS_AWAITING_REVIEW,
+                timer: 1
+            },
+            1007: {
+                reportState: report_utils.RS_OVERDUE_FROM_USER_IN_TRIAGE,
+                timer: 1
+            },
+            1008: {
+                reportState: report_utils.RS_OVERDUE_FROM_USER_IN_REVIEW,
+                timer: 1
+            },
+            1009: {
+                reportState: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
+                timer: 1
+            }
+        };
+
+        expect(report_utils.sortIntoSections(pullRequests)).toEqual([
+            {
+                section: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
+                pullRequests: [ pullRequests[1009] ]
+            },
+            {
+                section: report_utils.RS_AWAITING_TRIAGE,
+                pullRequests: [ pullRequests[1004] ]
+            },
+            {
+                section: report_utils.RS_AWAITING_REVIEW,
+                pullRequests: [ pullRequests[1006] ]
+            },
+            {
+                section: report_utils.RS_OVERDUE_FROM_USER_IN_REVIEW,
+                pullRequests: [ pullRequests[1008] ]
+            },
+            {
+                section: report_utils.RS_OVERDUE_FROM_USER_IN_TRIAGE,
+                pullRequests: [ pullRequests[1007] ]
+            },
+            {
+                section: report_utils.RS_IN_TRIAGE,
+                pullRequests: [ pullRequests[1005] ]
+            },
+            {
+                section: "Old " + report_utils.RS_OVERDUE_AWAITING_REVIEW,
+                pullRequests: [ pullRequests[1002] ]
+            },
+            {
+                section: "Old " + report_utils.RS_OVERDUE_IN_REVIEW,
+                pullRequests: [ pullRequests[1001] ]
+            },
+            {
+                section: "Old " + report_utils.RS_OVERDUE_IN_TRIAGE,
+                pullRequests: [ pullRequests[1003] ]
+            },
+            {
+                section: "Old " + report_utils.RS_IN_REVIEW,
+                pullRequests: [ pullRequests[1000] ]
             }
         ]);
     });
