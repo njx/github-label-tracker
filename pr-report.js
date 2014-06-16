@@ -23,6 +23,10 @@
 
 "use strict";
 
+/**
+ * Script to run the pull request report. Takes no options at this time.
+ */
+
 var Promise = require("bluebird"),
     fs = require("fs"),
     report_utils = require("./lib/report-utils");
