@@ -33,77 +33,77 @@ var rewire = require("rewire"),
 
 describe("whenTriageCompleted", function () {
     it("should return null if there's no data", function () {
-        expect(report_utils.whenTriageCompleted(1000, undefined, "PR Triage Complete")).toBeNull();
+        expect(report_utils.whenTriageCompleted("1000", undefined, "PR Triage Complete")).toBeNull();
     });
     
     it("should return null if the PR is not complete", function () {
         var issueLabels = {
-            1000: {
+            "1000": {
                 current: []
             }
         };
-        expect(report_utils.whenTriageCompleted(1000, issueLabels, "PR Triage Complete")).toBeNull();
+        expect(report_utils.whenTriageCompleted("1000", issueLabels, "PR Triage Complete")).toBeNull();
     });
     
     it("should return the latest timestamp when the completion label was added", function () {
         var issueLabels = {
-            1000: {
+            "1000": {
                 current: ["PR Triage Complete"],
                 changes: {
-                    9999: {
+                    "9999": {
                         added: ["PR Triage Complete"]
                     },
-                    8888: {
+                    "8888": {
                         removed: ["PR Triage Complete"]
                     },
-                    7777: {
+                    "7777": {
                         added: ["PR Triage Complete"]
                     }
                 }
             }
         };
-        expect(report_utils.whenTriageCompleted(1000, issueLabels, "PR Triage Complete")).toBe(9999);
+        expect(report_utils.whenTriageCompleted("1000", issueLabels, "PR Triage Complete")).toBe(9999);
     });
 });
 
 describe("mergeTriageCompleted", function () {
     it("should merge the triage completed values into the PR information", function () {
         var issueLabels = {
-            1000: {
+            "1000": {
                 current: ["PR Triage Complete"],
                 changes: {
-                    9999: {
+                    "9999": {
                         added: ["PR Triage Complete"]
                     }
                 }
             },
-            1001: {
+            "1001": {
                 current: []
             },
-            1002: {
+            "1002": {
                 current: ["PR Triage Complete"],
                 changes: {
-                    5322: {
+                    "5322": {
                         added: ["PR Triage Complete"]
                     }
                 }
             }
         },
             pullRequests = {
-                1002: {},
-                1001: {},
-                1000: {}
+                "1002": {},
+                "1001": {},
+                "1000": {}
             };
         
         var result = report_utils.mergeTriageCompleted(pullRequests, issueLabels, "PR Triage Complete");
         expect(result).toEqual({
-            1000: {
+            "1000": {
                 triageCompleted: 9999
             },
-            1001: {
+            "1001": {
                 triageCompleted: null
             },
-            1002: {
+            "1002": {
                 triageCompleted: 5322
             }
         });
@@ -368,30 +368,42 @@ describe("getReportState", function () {
             reportState: report_utils.RS_IN_REVIEW,
             timer: 25
         });
+        
+        pr = {
+            state: tracker_utils.PR_STATE_IN_REVIEW,
+            latestUserComment: 150,
+            created: 100,
+            triageCompleted: 150
+        };
+        
+        expect(report_utils.getReportState(pr, 225, 100)).toEqual({
+            reportState: report_utils.RS_IN_REVIEW,
+            timer: 25
+        });
     });
 });
 
 describe("mergeReportState", function () {
     it("should merge report state into the pull request data", function () {
         var pullRequests = {
-            1000: {
+            "1000": {
                 state: tracker_utils.PR_STATE_NEW,
                 created: 100
             },
-            1001: {
+            "1001": {
                 state: tracker_utils.PR_STATE_TRIAGED,
                 triageCompleted: 25
             }
         };
         expect(report_utils.mergeReportState(pullRequests, 150, 100)).toEqual({
-            1000: {
+            "1000": {
                 state: tracker_utils.PR_STATE_NEW,
                 created: 100,
                 reportState: report_utils.RS_AWAITING_TRIAGE,
                 timer: 50,
                 id: 1000
             },
-            1001: {
+            "1001": {
                 state: tracker_utils.PR_STATE_TRIAGED,
                 triageCompleted: 25,
                 reportState: report_utils.RS_OVERDUE_AWAITING_REVIEW,
@@ -405,25 +417,25 @@ describe("mergeReportState", function () {
 describe("markOldRequests", function () {
     it("should mark reqeusts prior to a certain number as old", function () {
         var pullRequests = {
-            1000: {
+            "1000": {
                 id: 1000
             },
-            1100: {
+            "1100": {
                 id: 1100
             },
-            1101: {
+            "1101": {
                 id: 1101
             }
         };
         expect(report_utils.markOldRequests(pullRequests, 1100)).toEqual({
-            1000: {
+            "1000": {
                 id: 1000,
                 old: true
             },
-            1100: {
+            "1100": {
                 id: 1100
             },
-            1101: {
+            "1101": {
                 id: 1101
             }
         });
@@ -433,43 +445,43 @@ describe("markOldRequests", function () {
 describe("sortIntoSections", function () {
     it("should sort pull requests into a sorted, section data structure", function () {
         var pullRequests = {
-            1000: {
+            "1000": {
                 reportState: report_utils.RS_IN_REVIEW,
                 timer: 1
             },
-            1001: {
+            "1001": {
                 reportState: report_utils.RS_OVERDUE_IN_REVIEW,
                 timer: 1
             },
-            1002: {
+            "1002": {
                 reportState: report_utils.RS_OVERDUE_AWAITING_REVIEW,
                 timer: 1
             },
-            1003: {
+            "1003": {
                 reportState: report_utils.RS_OVERDUE_IN_TRIAGE,
                 timer: 1
             },
-            1004: {
+            "1004": {
                 reportState: report_utils.RS_AWAITING_TRIAGE,
                 timer: 1
             },
-            1005: {
+            "1005": {
                 reportState: report_utils.RS_IN_TRIAGE,
                 timer: 1
             },
-            1006: {
+            "1006": {
                 reportState: report_utils.RS_AWAITING_REVIEW,
                 timer: 1
             },
-            1007: {
+            "1007": {
                 reportState: report_utils.RS_OVERDUE_FROM_USER_IN_TRIAGE,
                 timer: 1
             },
-            1008: {
+            "1008": {
                 reportState: report_utils.RS_OVERDUE_FROM_USER_IN_REVIEW,
                 timer: 1
             },
-            1009: {
+            "1009": {
                 reportState: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
                 timer: 1
             }
@@ -521,27 +533,27 @@ describe("sortIntoSections", function () {
     
     it("should sort pull requests by timer", function () {
         var pullRequests = {
-            1000: {
+            "1000": {
                 reportState: report_utils.RS_AWAITING_TRIAGE,
                 timer: 90
             },
-            1001: {
+            "1001": {
                 reportState: report_utils.RS_AWAITING_TRIAGE,
                 timer: 92
             },
-            1002: {
+            "1002": {
                 reportState: report_utils.RS_AWAITING_TRIAGE,
                 timer: 40
             },
-            1003: {
+            "1003": {
                 reportState: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
                 timer: 90
             },
-            1004: {
+            "1004": {
                 reportState: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
                 timer: 92
             },
-            1005: {
+            "1005": {
                 reportState: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
                 timer: 40
             }
@@ -569,47 +581,47 @@ describe("sortIntoSections", function () {
     
     it("should separate old requests", function () {
         var pullRequests = {
-            1000: {
+            "1000": {
                 reportState: report_utils.RS_IN_REVIEW,
                 timer: 1,
                 old: true
             },
-            1001: {
+            "1001": {
                 reportState: report_utils.RS_OVERDUE_IN_REVIEW,
                 timer: 1,
                 old: true
             },
-            1002: {
+            "1002": {
                 reportState: report_utils.RS_OVERDUE_AWAITING_REVIEW,
                 timer: 1,
                 old: true
             },
-            1003: {
+            "1003": {
                 reportState: report_utils.RS_OVERDUE_IN_TRIAGE,
                 timer: 1,
                 old: true
             },
-            1004: {
+            "1004": {
                 reportState: report_utils.RS_AWAITING_TRIAGE,
                 timer: 1
             },
-            1005: {
+            "1005": {
                 reportState: report_utils.RS_IN_TRIAGE,
                 timer: 1
             },
-            1006: {
+            "1006": {
                 reportState: report_utils.RS_AWAITING_REVIEW,
                 timer: 1
             },
-            1007: {
+            "1007": {
                 reportState: report_utils.RS_OVERDUE_FROM_USER_IN_TRIAGE,
                 timer: 1
             },
-            1008: {
+            "1008": {
                 reportState: report_utils.RS_OVERDUE_FROM_USER_IN_REVIEW,
                 timer: 1
             },
-            1009: {
+            "1009": {
                 reportState: report_utils.RS_OVERDUE_AWAITING_TRIAGE,
                 timer: 1
             }
