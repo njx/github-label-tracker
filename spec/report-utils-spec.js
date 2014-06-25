@@ -415,7 +415,7 @@ describe("mergeReportState", function () {
 });
 
 describe("markOldRequests", function () {
-    it("should mark reqeusts prior to a certain number as old", function () {
+    it("should mark requests prior to a certain number as old", function () {
         var pullRequests = {
             "1000": {
                 id: 1000
