@@ -21,15 +21,15 @@
  * 
  */
 
-/*jslint vars: true, plusplus: true, nomen: true, node: true, indent: 4, maxerr: 50 */
-
 "use strict";
 
 var Promise = require("bluebird"),
     fs = Promise.promisifyAll(require("fs")),
     tracker_utils = require("./lib/tracker-utils");
 
-var config, log;
+Promise.longStackTraces();
+
+var config;
 
 // Read the configuration file
 tracker_utils.readJSON("config.json")
@@ -44,20 +44,20 @@ tracker_utils.readJSON("config.json")
     .then(function () {
         return tracker_utils.readJSON("storage/log.json");
     })
-    .then(function (contents) {
-        log = contents;
-        
-        // Get issues that have been updated since the last run and get their tracked labels
-        console.log("Fetching updated labels");
-        return tracker_utils.getCurrentLabels(config, log.timestamp || config.initial_timestamp);
+    .then(function (log) {
+        return Promise.props({
+            log: log,
+            latestIssues: tracker_utils.getLatestIssueInfo(config, log.timestamp || config.initial_timestamp),
+            latestComments: tracker_utils.getLatestComments(config, log.timestamp || config.initial_timestamp)
+        });
     })
-    .then(function (newLabels) {
+    .then(function (data) {
         // Update the label changes in the log based on the new labels
-        if (!tracker_utils.updateLog(log, newLabels)) {
+        if (!tracker_utils.updateLog(data.log, data.latestIssues, data.latestComments)) {
             console.log("No issues changed - exiting");
             process.exit(0);
         }
-        return fs.writeFileAsync("storage/log.json", JSON.stringify(log, null, "  "));
+        return fs.writeFileAsync("storage/log.json", JSON.stringify(data.log, null, "  "));
     })
     .then(function () {
         // Push the changes up to the storage repo
@@ -68,5 +68,6 @@ tracker_utils.readJSON("config.json")
     })
     .catch(function (err) {
         console.error(err);
+        console.error(err.stack);
         process.exit(1);
     });
