@@ -25,7 +25,8 @@
 
 var Promise = require("bluebird"),
     fs = Promise.promisifyAll(require("fs")),
-    tracker_utils = require("./lib/tracker-utils");
+    tracker_utils = require("./lib/tracker-utils"),
+    report_utils = require("./lib/report-utils");
 
 Promise.longStackTraces();
 
@@ -57,7 +58,11 @@ tracker_utils.readJSON("config.json")
             console.log("No issues changed - exiting");
             process.exit(0);
         }
-        return fs.writeFileAsync("storage/log.json", JSON.stringify(data.log, null, "  "));
+        var logText = JSON.stringify(data.log, null, "  "),
+            report  = report_utils.generateReport(config, data.log);
+    
+        return Promise.join(fs.writeFileAsync("storage/log.json", logText),
+                            fs.writeFileAsync("storage/index.html", report));
     })
     .then(function () {
         // Push the changes up to the storage repo
