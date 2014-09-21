@@ -31,17 +31,26 @@ var rewire = require("rewire"),
     tracker_utils = rewire("../lib/tracker-utils");
 
 describe("updateLog", function () {
+    var config = {
+        labels: ["one", "two", "three"]
+    };
+
     it("should add an issue to an empty log", function () {
         var log = {},
-            newLabels = {
+            db = {
                 timestamp: 1,
-                issueLabels: {
-                    50: ["one", "two"]
+                issues: {
+                    50: {
+                        labels: ["one", "two"]
+                    }
                 },
-                pullRequests: {}
+                latestUpdates: {
+                    issues: [50],
+                    pulls: []
+                },
             };
 
-        expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
+        tracker_utils.updateLog(config, log, db);
         expect(log.timestamp).toEqual(1);
         expect(log.issueLabels[50].changes).toEqual({
             1: {
@@ -61,15 +70,20 @@ describe("updateLog", function () {
                     }
                 }
             },
-            newLabels = {
+            db = {
                 timestamp: 2,
-                issueLabels: {
-                    50: ["two", "three"]
+                issues: {
+                    50: {
+                        labels: ["two", "three"]
+                    }
                 },
-                pullRequests: {}
+                latestUpdates: {
+                    issues: [50],
+                    pulls: []
+                }
             };
 
-        expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
+        tracker_utils.updateLog(config, log, db);
         expect(log.timestamp).toEqual(2);
         expect(log.issueLabels[50].changes).toEqual({
             2: {
@@ -90,15 +104,20 @@ describe("updateLog", function () {
                     }
                 }
             },
-            newLabels = {
+            db = {
                 timestamp: 2,
-                issueLabels: {
-                    50: ["one", "two"]
+                issues: {
+                    50: {
+                        labels: ["one", "two"]
+                    }
                 },
-                pullRequests: {}
+                latestUpdates: {
+                    issues: [50],
+                    pulls: []
+                }
             };
 
-        expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
+        tracker_utils.updateLog(config, log, db);
         expect(log.timestamp).toEqual(2);
         expect(log.issueLabels[50].changes).toEqual({});
         expect(log.issueLabels[50].current).toEqual(["one", "two"]);
@@ -114,14 +133,21 @@ describe("updateLog", function () {
                     }
                 }
             },
-            newLabels = {
-                timestamp: 1,
-                issueLabels: {},
-                pullRequests: {}
+            db = {
+                timestamp: 2,
+                issues: {
+                    50: {
+                        labels: ["one", "two"]
+                    }
+                },
+                latestUpdates: {
+                    issues: [],
+                    pulls: []
+                }
             };
 
-        expect(tracker_utils.updateLog(log, newLabels)).toBe(false);
-        expect(log.timestamp).toEqual(1);
+        tracker_utils.updateLog(config, log, db);
+        expect(log.timestamp).toEqual(2);
         expect(log.issueLabels[50].changes).toEqual({});
         expect(log.issueLabels[50].current).toEqual(["one", "two"]);
     });
@@ -149,15 +175,20 @@ describe("updateLog", function () {
                 }
             },
             log = _.cloneDeep(origLog),
-            newLabels = {
+            db = {
                 timestamp: 2,
-                issueLabels: {
-                    50: ["two", "three"]
+                issues: {
+                    50: {
+                        labels: ["two", "three"]
+                    }
                 },
-                pullRequests: {}
+                latestUpdates: {
+                    issues: [50],
+                    pulls: []
+                }
             };
 
-        expect(tracker_utils.updateLog(log, newLabels)).toBe(true);
+        tracker_utils.updateLog(config, log, db);
         expect(log.timestamp).toEqual(2);
         expect(log.issueLabels[25]).toEqual(origLog.issueLabels[25]);
         expect(log.issueLabels[50].changes).toEqual({
@@ -176,66 +207,24 @@ describe("updateLog", function () {
         var log = {},
             prs = {
                 1099: {
-                    title: "Shiny Pull Request",
-                    created: 5,
-                    user: "TheRequestor",
-                    assignee: null,
-                    state: tracker_utils.PR_STATE_NEW
+                    prState: tracker_utils.PR_STATE_NEW
                 }
             },
-            issueInfo = {
+            db = {
                 timestamp: 10,
-                issueLabels: {},
-                pullRequests: prs
-            };
-        tracker_utils.updateLog(log, issueInfo);
-        expect(log.pullRequests).toEqual(prs);
-    });
-    
-    it("should merge pull request info", function () {
-        var log = {
-            pullRequests: {
-                1099: {
-                    title: "Old title",
-                    created: 5,
-                    assignee: null,
-                    user: "TheRequestor",
-                    state: tracker_utils.PR_STATE_NEW
-                },
-                1050: {
-                    title: "Pull Request of the Ancients",
-                    created: 1,
-                    assignee: null,
-                    user: "TheRequestor",
-                    state: tracker_utils.PR_STATE_NEW
-                }
-            }
-        },
-            issueInfo = {
-                timestamp: 10,
-                issueLabels: {},
-                pullRequests: {
+                issues: {
                     1099: {
-                        title: "Shiny Pull Request",
-                        user: "TheRequestor",
-                        created: 5,
-                        assignee: "TheAssignee",
-                        state: tracker_utils.PR_STATE_IN_TRIAGE
-                    },
-                    1132: {
-                        title: "A Second Pull Request",
-                        user: "TheRequestor",
-                        created: 9,
-                        assignee: null,
-                        state: tracker_utils.PR_STATE_NEW
+                        createdAt: 2,
+                        type: "pull"
                     }
+                },
+                latestUpdates: {
+                    issues: [],
+                    pulls: [1099]
                 }
             };
-        tracker_utils.updateLog(log, issueInfo);
-        expect(Object.keys(log.pullRequests).length).toBe(3);
-        expect(log.pullRequests[1050].title).toBe("Pull Request of the Ancients");
-        expect(log.pullRequests[1099].title).toBe("Shiny Pull Request");
-        expect(log.pullRequests[1099].state).toBe(tracker_utils.PR_STATE_IN_TRIAGE);
+        tracker_utils.updateLog(config, log, db);
+        expect(log.pullRequests).toEqual(prs);
     });
     
     it("should merge comment info", function () {
@@ -243,18 +232,22 @@ describe("updateLog", function () {
             timestamp: 10,
             pullRequests: {
                 1099: {
-                    title: "Shiny Pull Request",
-                    created: 5,
-                    user: "TheRequestor",
-                    assignee: "TheAssignee",
-                    state: tracker_utils.PR_STATE_NEW
                 }
             }
         },
-            issueInfo = {
+            db = {
                 timestamp: 10,
-                issueLabels: {},
-                pullRequests: {}
+                issues: {
+                    1099: {
+                        type: "pull",
+                        user: "TheRequestor",
+                        assignee: "TheAssignee"
+                    }
+                },
+                latestUpdates: {
+                    issues: [],
+                    pulls: [1099]
+                }
             },
             latestComments = {
                 timestamp: 10,
@@ -281,7 +274,7 @@ describe("updateLog", function () {
                     }
                 ]
             };
-        expect(tracker_utils.updateLog(log, issueInfo, latestComments)).toBe(true);
+        tracker_utils.updateLog(config, log, db, latestComments);
         expect(log.pullRequests[1099].latestUserComment).toEqual(Date.parse("2014-06-09T10:10:10Z"));
         expect(log.pullRequests[1099].latestAssigneeComment).toEqual(Date.parse("2014-06-08T09:09:09Z"));
     });
@@ -298,20 +291,23 @@ describe("updateLog", function () {
                 }
             }
         },
-            issueInfo = {
+            db = {
                 timestamp: 10,
-                issueLabels: {},
-                pullRequests: {
+                issues: {
                     1099: {
                         title: "Shiny Pull Request",
-                        created: 5,
+                        createdAt: 5,
                         user: "TheRequestor",
                         assignee: "TheAssignee",
                         state: "closed"
                     }
+                },
+                latestUpdates: {
+                    issues: [],
+                    pulls: [1099]
                 }
             };
-        tracker_utils.updateLog(log, issueInfo);
+        tracker_utils.updateLog(config, log, db);
         expect(log.pullRequests).toEqual({});
     });
 });
@@ -326,6 +322,10 @@ describe("getLatestIssueInfo", function () {
     var mockIssue1347 = {
             "url": "https://api.github.com/repos/octocat/Hello-World/issues/1347",
             "number": 1347,
+            "title": "1347 was a good year. I guess.",
+            "user": {
+                login: "ABracketsUsers"
+            },
             "labels": [
                 {
                     "url": "https://api.github.com/repos/octocat/Hello-World/labels/bug",
@@ -344,6 +344,10 @@ describe("getLatestIssueInfo", function () {
         mockIssue1350 = {
             "url": "https://api.github.com/repos/octocat/Hello-World/issues/1350",
             "number": 1350,
+            "title": "The Exciting 1350",
+            "user": {
+                login: "ABracketsDeveloper"
+            },
             "labels": [
                 {
                     "url": "https://api.github.com/repos/octocat/Hello-World/labels/Development",
@@ -446,20 +450,23 @@ describe("getLatestIssueInfo", function () {
     it("should fetch the issues for a repo from GitHub and return the tracked labels in the correct format", function (done) {
         // This isn't all the content from a GitHub response, just the stuff we should care about.
         mockBody = JSON.stringify([mockIssue1347, mockIssue1350]);
+        var db = {
+            timestamp: 100,
+            issues: {},
+            pulls: {}
+        };
         
-        tracker_utils.getLatestIssueInfo(mockConfig, 100)
-            .then(function (currentInfo) {
+        tracker_utils.getLatestIssueInfo(mockConfig, db)
+            .then(function (db) {
                 expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/issues");
                 expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
                 expect(requestedOptions[0].qs.since).toEqual(new Date(100).toISOString());
-                expect(currentInfo).toEqual({
-                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
-                    issueLabels: {
-                        1347: ["Ready"],
-                        1350: ["Development"]
-                    },
-                    pullRequests: {}
-                });
+                expect(db.timestamp).toEqual(Date.parse("2011-04-22T13:35:49Z"));
+                expect(db.issues[1347].createdAt).toBe(Date.parse("2011-04-22T13:33:48Z"));
+                expect(db.issues[1347].labels).toEqual(["bug", "Ready"]);
+                expect(db.issues[1350].labels).toEqual(["Development", "enhancement"]);
+                expect(db.issues[1347].type).toBe("issue");
+                expect(db.latestUpdates.issues).toEqual([1347, 1350]);
                 done();
             });
     });
@@ -467,35 +474,18 @@ describe("getLatestIssueInfo", function () {
     it("should handle an unspecified initial timestamp", function (done) {
         mockBody = JSON.stringify([mockIssue1350]);
         
-        tracker_utils.getLatestIssueInfo(mockConfig)
+        var db = {
+            issues: {},
+            pulls: {}
+        };
+        
+        tracker_utils.getLatestIssueInfo(mockConfig, db)
             .then(function (currentInfo) {
                 expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/issues");
                 expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
                 expect(requestedOptions[0].qs.since).toBeUndefined();
-                expect(currentInfo).toEqual({
-                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
-                    issueLabels: {
-                        1350: ["Development"]
-                    },
-                    pullRequests: {}
-                });
-                done();
-            });
-    });
-    
-    it("should default to specified 'since' timestamp if there are no updates", function (done) {
-        mockBody = "[]";
-        
-        tracker_utils.getLatestIssueInfo(mockConfig, 100)
-            .then(function (currentInfo) {
-                expect(requestedOptions[0].url).toEqual("https://api.github.com/repos/my/repo/issues");
-                expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
-                expect(requestedOptions[0].qs.since).toEqual(new Date(100).toISOString());
-                expect(currentInfo).toEqual({
-                    timestamp: 100,
-                    issueLabels: {},
-                    pullRequests: {}
-                });
+                expect(db.issues[1350].title).toEqual("The Exciting 1350");
+                expect(db.latestUpdates.issues).toEqual([1350]);
                 done();
             });
     });
@@ -517,7 +507,13 @@ describe("getLatestIssueInfo", function () {
             }
         ];
         
-        tracker_utils.getLatestIssueInfo(mockConfig, 100)
+        var db = {
+            timestamp: 100,
+            issues: {},
+            pulls: {}
+        };
+        
+        tracker_utils.getLatestIssueInfo(mockConfig, db)
             .then(function (currentInfo) {
                 var i;
                 for (i = 0; i < 2; i++) {
@@ -529,14 +525,8 @@ describe("getLatestIssueInfo", function () {
                 expect(requestedOptions[0].qs.page).toBeUndefined();
                 expect(requestedOptions[1].qs.page).toEqual("2");
              
-                expect(currentInfo).toEqual({
-                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
-                    issueLabels: {
-                        1347: ["Ready"],
-                        1350: ["Development"]
-                    },
-                    pullRequests: {}
-                });
+                expect(db.timestamp).toEqual(Date.parse("2011-04-22T13:35:49Z"));
+                expect(db.issues[1350].title).toEqual("The Exciting 1350");
                 done();
             });
     });
@@ -545,136 +535,22 @@ describe("getLatestIssueInfo", function () {
         mockBody = [
             JSON.stringify([mockPR1352])
         ];
-        tracker_utils.getLatestIssueInfo(mockConfig)
+        
+        var db = {
+            issues: {}
+        };
+        
+        tracker_utils.getLatestIssueInfo(mockConfig, db)
             .then(function (currentInfo) {
-                expect(currentInfo).toEqual({
-                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
-                    issueLabels: {
-                        1352: []
-                    },
-                    pullRequests: {
-                        1352: {
-                            "title": mockPR1352.title,
-                            "assignee": null,
-                            "user": "UserThatCreated",
-                            "created": Date.parse("2011-04-22T13:35:49Z"),
-                            "state": tracker_utils.PR_STATE_NEW
-                        }
-                    }
-                });
-                done();
-            });
-    });
-    
-    it("should return pull request data for in-triage PRs", function (done) {
-        mockBody = [
-            JSON.stringify([mockPR1353])
-        ];
-        tracker_utils.getLatestIssueInfo(mockConfig)
-            .then(function (currentInfo) {
-                expect(currentInfo).toEqual({
-                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
-                    issueLabels: {
-                        1353: []
-                    },
-                    pullRequests: {
-                        1353: {
-                            "title": mockPR1353.title,
-                            "assignee": mockPR1353.assignee.login,
-                            "user": "UserThatCreated",
-                            "created": Date.parse("2011-04-22T13:35:49Z"),
-                            "state": tracker_utils.PR_STATE_IN_TRIAGE
-                        }
-                    }
-                });
-                done();
-            });
-    });
-    
-    it("should return pull request data for triage complete PRs", function (done) {
-        mockBody = [
-            JSON.stringify([mockPR1352])
-        ];
-        mockConfig.triageCompleteLabel = "PR Triage complete";
-        mockConfig.labels.push("PR Triage complete");
-        tracker_utils.getLatestIssueInfo(mockConfig)
-            .then(function (currentInfo) {
-                expect(currentInfo).toEqual({
-                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
-                    issueLabels: {
-                        1352: ["PR Triage complete"]
-                    },
-                    pullRequests: {
-                        1352: {
-                            "title": mockPR1352.title,
-                            "assignee": null,
-                            "user": "UserThatCreated",
-                            "created": Date.parse("2011-04-22T13:35:49Z"),
-                            "state": tracker_utils.PR_STATE_TRIAGED
-                        }
-                    }
-                });
-                done();
-            });
-    });
-    
-    it("should return pull request data for in-review PRs", function (done) {
-        mockBody = [
-            JSON.stringify([mockPR1353])
-        ];
-        mockConfig.triageCompleteLabel = "PR Triage complete";
-        mockConfig.labels.push("PR Triage complete");
-        tracker_utils.getLatestIssueInfo(mockConfig)
-            .then(function (currentInfo) {
-                expect(currentInfo).toEqual({
-                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
-                    issueLabels: {
-                        1353: ["PR Triage complete"]
-                    },
-                    pullRequests: {
-                        1353: {
-                            "title": mockPR1353.title,
-                            "assignee": mockPR1353.assignee.login,
-                            "user": "UserThatCreated",
-                            "created": Date.parse("2011-04-22T13:35:49Z"),
-                            "state": tracker_utils.PR_STATE_IN_REVIEW
-                        }
-                    }
-                });
-                done();
-            });
-    });
-    
-    it("should return only open PRs when firstRun is set", function (done) {
-        var closed1352 = _.cloneDeep(mockPR1352);
-        closed1352.state = "closed";
-        mockBody = [
-            JSON.stringify([closed1352])
-        ];
-        mockConfig.firstRun = true;
-        tracker_utils.getLatestIssueInfo(mockConfig)
-            .then(function (currentInfo) {
-                expect(currentInfo).toEqual({
-                    timestamp: Date.parse("2011-04-22T13:35:49Z"),
-                    issueLabels: {
-                        1352: []
-                    },
-                    pullRequests: {
-                    }
-                });
-                done();
-            });
-    });
-    
-    it("should return closed PRs with a state of closed", function (done) {
-        var closed1352 = _.cloneDeep(mockPR1352);
-        closed1352.state = "closed";
-        mockBody = [
-            JSON.stringify([closed1352])
-        ];
-        tracker_utils.getLatestIssueInfo(mockConfig)
-            .then(function (currentInfo) {
-                expect(currentInfo.pullRequests[1352].state).toBe("closed");
+                expect(db.timestamp).toBe(Date.parse("2011-04-22T13:35:49Z"));
+            
+                var pull = db.issues[1352];
+                expect(pull.labels).toEqual(["PR Triage complete"]);
+                expect(pull.title).toEqual(mockPR1352.title);
+                expect(pull.assignee).toBeNull();
+                expect(pull.user).toBe("UserThatCreated");
+                expect(pull.createdAt).toBe(Date.parse("2011-04-22T13:35:49Z"));
+                expect(db.latestUpdates.pulls).toEqual([1352]);
                 done();
             });
     });

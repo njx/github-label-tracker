@@ -113,8 +113,8 @@ describe("mergeTriageCompleted", function () {
 describe("getReportState", function () {
     it("should identify awaiting triage", function () {
         var pr = {
-            created: 100,
-            state: tracker_utils.PR_STATE_NEW
+            createdAt: 100,
+            prState: report_utils.PR_STATE_NEW
         };
         expect(report_utils.getReportState(pr, 105, 100)).toEqual({
             reportState: report_utils.RS_AWAITING_TRIAGE,
@@ -128,8 +128,8 @@ describe("getReportState", function () {
     
     it("should identify overdue awaiting triage", function () {
         var pr = {
-            created: 100,
-            state: tracker_utils.PR_STATE_NEW
+            createdAt: 100,
+            prState: report_utils.PR_STATE_NEW
         };
         
         expect(report_utils.getReportState(pr, 205, 100)).toEqual({
@@ -145,7 +145,7 @@ describe("getReportState", function () {
     
     it("should identify overdue in triage", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_IN_TRIAGE,
+            prState: report_utils.PR_STATE_IN_TRIAGE,
             latestAssigneeComment: 100,
             latestUserComment: 200
         };
@@ -163,8 +163,8 @@ describe("getReportState", function () {
     
     it("should identify overdue in triage with no comments", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_IN_TRIAGE,
-            created: 100
+            prState: report_utils.PR_STATE_IN_TRIAGE,
+            createdAt: 100
         };
         
         expect(report_utils.getReportState(pr, 250, 100)).toEqual({
@@ -175,8 +175,8 @@ describe("getReportState", function () {
     
     it("should identify overdue in triage with no assignee comments", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_IN_TRIAGE,
-            created: 100,
+            prState: report_utils.PR_STATE_IN_TRIAGE,
+            createdAt: 100,
             latestUserComment: 150
         };
         
@@ -188,8 +188,8 @@ describe("getReportState", function () {
     
     it("should identify overdue from user in triage with no user comments", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_IN_TRIAGE,
-            created: 100,
+            prState: report_utils.PR_STATE_IN_TRIAGE,
+            createdAt: 100,
             latestAssigneeComment: 125
         };
         
@@ -201,8 +201,8 @@ describe("getReportState", function () {
     
     it("should identify in triage with no user comments", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_IN_TRIAGE,
-            created: 100,
+            prState: report_utils.PR_STATE_IN_TRIAGE,
+            createdAt: 100,
             latestAssigneeComment: 125
         };
 
@@ -214,7 +214,7 @@ describe("getReportState", function () {
     
     it("should identify user overdue in triage", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_IN_TRIAGE,
+            prState: report_utils.PR_STATE_IN_TRIAGE,
             latestAssigneeComment: 200,
             latestUserComment: 100
         };
@@ -232,7 +232,7 @@ describe("getReportState", function () {
     
     it("should identify in triage", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_IN_TRIAGE,
+            prState: report_utils.PR_STATE_IN_TRIAGE,
             latestAssigneeComment: 200,
             latestUserComment: 100
         };
@@ -249,7 +249,7 @@ describe("getReportState", function () {
         
         // Flip the comment times and get the same result
         pr = {
-            state: tracker_utils.PR_STATE_IN_TRIAGE,
+            prState: report_utils.PR_STATE_IN_TRIAGE,
             latestAssigneeComment: 100,
             latestUserComment: 200
         };
@@ -267,7 +267,7 @@ describe("getReportState", function () {
     
     it("should identify overdue awaiting review", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_TRIAGED,
+            prState: report_utils.PR_STATE_TRIAGED,
             triageCompleted: 100
         };
         
@@ -284,7 +284,7 @@ describe("getReportState", function () {
     
     it("should identify awaiting review", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_TRIAGED,
+            prState: report_utils.PR_STATE_TRIAGED,
             triageCompleted: 100
         };
         
@@ -301,7 +301,7 @@ describe("getReportState", function () {
     
     it("should identify overdue in review", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_IN_REVIEW,
+            prState: report_utils.PR_STATE_IN_REVIEW,
             latestAssigneeComment: 100,
             latestUserComment: 200
         };
@@ -319,7 +319,7 @@ describe("getReportState", function () {
 
     it("should identify user overdue in review", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_IN_REVIEW,
+            prState: report_utils.PR_STATE_IN_REVIEW,
             latestAssigneeComment: 200,
             latestUserComment: 100
         };
@@ -337,7 +337,7 @@ describe("getReportState", function () {
 
     it("should identify in review", function () {
         var pr = {
-            state: tracker_utils.PR_STATE_IN_REVIEW,
+            prState: report_utils.PR_STATE_IN_REVIEW,
             latestAssigneeComment: 200,
             latestUserComment: 100
         };
@@ -354,7 +354,7 @@ describe("getReportState", function () {
 
         // Flip the comment times and get the same result
         pr = {
-            state: tracker_utils.PR_STATE_IN_REVIEW,
+            prState: report_utils.PR_STATE_IN_REVIEW,
             latestAssigneeComment: 100,
             latestUserComment: 200
         };
@@ -370,9 +370,9 @@ describe("getReportState", function () {
         });
         
         pr = {
-            state: tracker_utils.PR_STATE_IN_REVIEW,
+            prState: report_utils.PR_STATE_IN_REVIEW,
             latestUserComment: 150,
-            created: 100,
+            createdAt: 100,
             triageCompleted: 150
         };
         
@@ -387,24 +387,24 @@ describe("mergeReportState", function () {
     it("should merge report state into the pull request data", function () {
         var pullRequests = {
             "1000": {
-                state: tracker_utils.PR_STATE_NEW,
-                created: 100
+                prState: report_utils.PR_STATE_NEW,
+                createdAt: 100
             },
             "1001": {
-                state: tracker_utils.PR_STATE_TRIAGED,
+                prState: report_utils.PR_STATE_TRIAGED,
                 triageCompleted: 25
             }
         };
         expect(report_utils.mergeReportState(pullRequests, 150, 100)).toEqual({
             "1000": {
-                state: tracker_utils.PR_STATE_NEW,
-                created: 100,
+                prState: report_utils.PR_STATE_NEW,
+                createdAt: 100,
                 reportState: report_utils.RS_AWAITING_TRIAGE,
                 timer: 50,
                 id: 1000
             },
             "1001": {
-                state: tracker_utils.PR_STATE_TRIAGED,
+                prState: report_utils.PR_STATE_TRIAGED,
                 triageCompleted: 25,
                 reportState: report_utils.RS_OVERDUE_AWAITING_REVIEW,
                 timer: 25,
@@ -669,6 +669,44 @@ describe("sortIntoSections", function () {
                 pullRequests: [ pullRequests[1000] ]
             }
         ]);
+    });
+});
+
+describe("getOpenPullRequests", function () {
+    it("should find return a collection of only pull requests that are open", function () {
+        var db = {
+            issues: {
+                1: {
+                    type: "issue",
+                    state: "open"
+                },
+                2: {
+                    type: "pull",
+                    state: "open"
+                },
+                3: {
+                    type: "pull",
+                    state: "closed"
+                }
+            }
+        };
+        
+        expect(Object.keys(report_utils.getOpenPullRequests(db))).toEqual(["2"]);
+    });
+    
+    it("should return a clone of the original data", function () {
+        var db = {
+            issues: {
+                1: {
+                    type: "pull",
+                    state: "open"
+                }
+            }
+        };
+        
+        var result = report_utils.getOpenPullRequests(db);
+        expect(result[1].type).toBe("pull");
+        expect(db.issues[1]).not.toBe(result[1]);
     });
 });
 

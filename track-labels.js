@@ -43,25 +43,28 @@ tracker_utils.readJSON("config.json")
         return tracker_utils.updateFiles(config);
     })
     .then(function () {
-        return tracker_utils.readJSON("storage/log.json");
-    })
-    .then(function (log) {
         return Promise.props({
-            log: log,
-            latestIssues: tracker_utils.getLatestIssueInfo(config, log.timestamp || config.initial_timestamp),
-            latestComments: tracker_utils.getLatestComments(config, log.timestamp || config.initial_timestamp)
+            log: tracker_utils.readJSON("storage/log.json"),
+            db: tracker_utils.readJSON("allIssues.json")
+        });
+    })
+    .then(function (data) {
+        return Promise.props({
+            log: data.log,
+            db: data.db,
+            latestIssues: tracker_utils.getLatestIssueInfo(config, data.db),
+            latestComments: tracker_utils.getLatestComments(config, data.log.timestamp || config.initial_timestamp)
         });
     })
     .then(function (data) {
         // Update the label changes in the log based on the new labels
-        if (!tracker_utils.updateLog(data.log, data.latestIssues, data.latestComments)) {
-            console.log("No issues changed - exiting");
-            process.exit(0);
-        }
+        tracker_utils.updateLog(config, data.log, data.db, data.latestIssues, data.latestComments);
         var logText = JSON.stringify(data.log, null, "  "),
-            report  = report_utils.generateReport(config, data.log);
+            dbText = JSON.stringify(data.db, null, "  "),
+            report  = report_utils.generateReport(config, data.db, data.log);
     
         return Promise.join(fs.writeFileAsync("storage/log.json", logText),
+                            fs.writeFileAsync("allIssues.json", dbText),
                             fs.writeFileAsync("storage/index.html", report));
     })
     .then(function () {
