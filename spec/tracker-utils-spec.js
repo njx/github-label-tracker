@@ -59,6 +59,31 @@ describe("updateLog", function () {
         });
         expect(log.issueLabels[50].current).toEqual(["one", "two"]);
     });
+    
+    it("should track labels for pull requests", function () {
+        var log = {},
+            db = {
+                timestamp: 1,
+                issues: {
+                    50: {
+                        labels: ["one", "two"]
+                    }
+                },
+                latestUpdates: {
+                    issues: [],
+                    pulls: [50]
+                },
+            };
+
+        tracker_utils.updateLog(config, log, db);
+        expect(log.timestamp).toEqual(1);
+        expect(log.issueLabels[50].changes).toEqual({
+            1: {
+                added: ["one", "two"]
+            }
+        });
+        expect(log.issueLabels[50].current).toEqual(["one", "two"]);
+    });
 
     it("should calculate label changes for a single issue, starting with previous log", function () {
         var log = {
