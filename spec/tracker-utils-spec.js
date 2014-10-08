@@ -43,11 +43,7 @@ describe("updateLog", function () {
                     50: {
                         labels: ["one", "two"]
                     }
-                },
-                latestUpdates: {
-                    issues: [50],
-                    pulls: []
-                },
+                }
             };
 
         tracker_utils.updateLog(config, log, db);
@@ -69,10 +65,7 @@ describe("updateLog", function () {
                         labels: ["one", "two"]
                     }
                 },
-                latestUpdates: {
-                    issues: [],
-                    pulls: [50]
-                },
+                
             };
 
         tracker_utils.updateLog(config, log, db);
@@ -101,10 +94,6 @@ describe("updateLog", function () {
                     50: {
                         labels: ["two", "three"]
                     }
-                },
-                latestUpdates: {
-                    issues: [50],
-                    pulls: []
                 }
             };
 
@@ -135,10 +124,6 @@ describe("updateLog", function () {
                     50: {
                         labels: ["one", "two"]
                     }
-                },
-                latestUpdates: {
-                    issues: [50],
-                    pulls: []
                 }
             };
 
@@ -164,10 +149,6 @@ describe("updateLog", function () {
                     50: {
                         labels: ["one", "two"]
                     }
-                },
-                latestUpdates: {
-                    issues: [],
-                    pulls: []
                 }
             };
 
@@ -206,10 +187,6 @@ describe("updateLog", function () {
                     50: {
                         labels: ["two", "three"]
                     }
-                },
-                latestUpdates: {
-                    issues: [50],
-                    pulls: []
                 }
             };
 
@@ -240,12 +217,9 @@ describe("updateLog", function () {
                 issues: {
                     1099: {
                         createdAt: 2,
-                        type: "pull"
+                        type: "pull",
+                        number: 1099
                     }
-                },
-                latestUpdates: {
-                    issues: [],
-                    pulls: [1099]
                 }
             };
         tracker_utils.updateLog(config, log, db);
@@ -266,12 +240,9 @@ describe("updateLog", function () {
                     1099: {
                         type: "pull",
                         user: "TheRequestor",
-                        assignee: "TheAssignee"
+                        assignee: "TheAssignee",
+                        number: 1099
                     }
-                },
-                latestUpdates: {
-                    issues: [],
-                    pulls: [1099]
                 }
             },
             latestComments = {
@@ -320,16 +291,14 @@ describe("updateLog", function () {
                 timestamp: 10,
                 issues: {
                     1099: {
+                        type: "pull",
                         title: "Shiny Pull Request",
                         createdAt: 5,
                         user: "TheRequestor",
                         assignee: "TheAssignee",
-                        state: "closed"
+                        state: "closed",
+                        number: 1099
                     }
-                },
-                latestUpdates: {
-                    issues: [],
-                    pulls: [1099]
                 }
             };
         tracker_utils.updateLog(config, log, db);
@@ -491,7 +460,6 @@ describe("getLatestIssueInfo", function () {
                 expect(db.issues[1347].labels).toEqual(["bug", "Ready"]);
                 expect(db.issues[1350].labels).toEqual(["Development", "enhancement"]);
                 expect(db.issues[1347].type).toBe("issue");
-                expect(db.latestUpdates.issues).toEqual([1347, 1350]);
                 done();
             });
     });
@@ -510,7 +478,6 @@ describe("getLatestIssueInfo", function () {
                 expect(requestedOptions[0].qs.access_token).toEqual(mockConfig.api_key);
                 expect(requestedOptions[0].qs.since).toBeUndefined();
                 expect(db.issues[1350].title).toEqual("The Exciting 1350");
-                expect(db.latestUpdates.issues).toEqual([1350]);
                 done();
             });
     });
@@ -575,7 +542,6 @@ describe("getLatestIssueInfo", function () {
                 expect(pull.assignee).toBeNull();
                 expect(pull.user).toBe("UserThatCreated");
                 expect(pull.createdAt).toBe(Date.parse("2011-04-22T13:35:49Z"));
-                expect(db.latestUpdates.pulls).toEqual([1352]);
                 done();
             });
     });
